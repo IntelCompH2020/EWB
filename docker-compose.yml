@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  restapi-service:
+    build: ./restapi  # path is relative to docker-compose.yml localtion
+    #volumes:
+    #  - ./restapi:/usr/src/app # mount point
+    ports:
+      - 80:80  # host:container
