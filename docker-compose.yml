@@ -1,8 +1,52 @@
 version: '3.8'
+
+networks:
+  ewb-net:
+    driver: bridge
+
 services:
-  restapi-service:
-    build: ./restapi  # path is relative to docker-compose.yml localtion
-    #volumes:
-    #  - ./restapi:/usr/src/app # mount point
+  restapi:
+    build: ./restapi
     ports:
-      - 80:80  # host:container
+      - 80:80
+    volumes:
+      - ./logs/restapi:/opt/solr/server/logs
+    environment:
+      SOLR_URL: http://solr:8983
+    depends_on:
+      - solr
+    networks:
+      - ewb-net
+  solr:
+    image: solr:latest
+    restart: always
+    volumes:
+      - ./db/data/solr:/var/solr
+      - ./logs/solr:/opt/solr/server/logs
+    ports:
+      - 8983:8983
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr
+      - start
+      - -f
+      - -c
+      - -z
+      - zoo:2181
+      - -a
+      - "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1044 -Djute.maxbuffer=0x5000000"
+    networks:
+      - ewb-net
+  zoo:
+    image: zookeeper
+    restart: always
+    ports:
+      - 2180:8080
+      - 2181:2181
+    environment:
+      - JVMFLAGS=-Djute.maxbuffer=50000000
+    volumes:
+      - ./db/data/zoo/data:/data
+      - ./db/data/zoo/logs:/datalog
+    networks:
+      - ewb-net
