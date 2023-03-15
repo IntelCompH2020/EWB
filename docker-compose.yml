@@ -9,8 +9,6 @@ services:
     build: ./restapi
     ports:
       - 80:80
-    volumes:
-      - ./logs/restapi:/opt/solr/server/logs
     environment:
       SOLR_URL: http://solr:8983
     depends_on:
@@ -22,7 +20,9 @@ services:
     restart: always
     volumes:
       - ./db/data/solr:/var/solr
-      - ./logs/solr:/opt/solr/server/logs
+      #- ./logs/solr:/opt/solr/server/logs
+      #-./contrib/jscustomsimilarity:/opt/solr/contrib/jscustomsimilarity --> para copiar plugin semejanza
+      - ./data:/opt/solr/server/solr
     ports:
       - 8983:8983
     entrypoint:
