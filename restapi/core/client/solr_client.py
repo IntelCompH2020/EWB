@@ -27,10 +27,11 @@ class SolrClient():
     @staticmethod
     def resp_msg(msg: str, resp: SolrResp, throw=True):
         print('resp_msg: {} [Status: {}]'.format(msg, resp.status_code))
-        if resp.status_code >= 400:
-            print(resp.text)
-            if throw:
-                raise RuntimeError(resp.text)
+        #resp.status_code >= 400:
+        #    print(resp.text)
+        #    if throw:
+        #        raise RuntimeError(resp.text)
+        return resp.status_code
 
     def create_collection(self, col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
 
@@ -46,10 +47,10 @@ class SolrClient():
         resp = requests.post(
             url='{}/api/collections?'.format(self.solr_url), headers=headers_, json=data, timeout=10)
 
-        self.resp_msg(
+        sc = self.resp_msg(
             "Created collection {}".format(col_name), SolrResp(resp, self.logger))
 
-        return
+        return [{'name': col_name}], sc
 
     # def index_documents(documents_filename, embedding_filename):
     #     # Open the file containing text.

@@ -1,27 +1,18 @@
+"""Main application entry point
+"""
+from apis import api
 from flask import Flask
-from flask_restx import Api, Resource, reqparse
-
-from client.solr_client import SolrClient
+from pyfiglet import figlet_format
+from termcolor import cprint
 
 # Create Flask app
 app = Flask(__name__)
-api = Api(app, version='1.0', title='Evaluation Workbench API')
-
-parser = reqparse.RequestParser()
-parser.add_argument('collection', help='Specify collection name')
-
-# Create Solr client
-sc = SolrClient(app.logger)
-
-
-@api.route('/createCollection/')
-class CreateCollection(Resource):
-    @api.doc(parser=parser)
-    def post(self):
-        args = parser.parse_args()
-        collection = args['collection']
-        sc.create_collection(col_name=collection)
-
+# Deactivate the default mask parameter.
+app.config["RESTX_MASK_SWAGGER"]=False
+api.init_app(app)
 
 if __name__ == '__main__':
+    cprint(figlet_format("Welcome to Intelcomp's EWB API",
+           font='big'), 'blue', attrs=['bold'])
+    print('\n')
     app.run(host='0.0.0.0', port=80, debug=True)

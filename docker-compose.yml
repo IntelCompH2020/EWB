@@ -7,6 +7,7 @@ networks:
 services:
   restapi:
     build: ./restapi
+    container_name: ewb-restapi
     ports:
       - 80:80
     environment:
@@ -17,6 +18,7 @@ services:
       - ewb-net
   solr:
     image: solr:latest
+    container_name: ewb-solr
     restart: always
     volumes:
       - ./db/data/solr:/var/solr
@@ -37,8 +39,11 @@ services:
       - "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1044 -Djute.maxbuffer=0x5000000"
     networks:
       - ewb-net
+    #command: bin/solr zk upconfig -zkhost zoo:2181 -n ewb_config -d /opt/solr-9.1.1/server/solr/configsets/ewb_config
+
   zoo:
     image: zookeeper
+    container_name: ewb-zoo
     restart: always
     ports:
       - 2180:8080
