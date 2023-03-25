@@ -6,7 +6,8 @@ BATCH_SIZE = 100
 
 class SolrResp:
     def __init__(self, resp, logger):
-        resp = resp.json()
+        self.resp = resp.json()
+        logger.info(self.resp)
         self.status_code = 400
         if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
             logger.info('-- -- Request acknowledged')
@@ -27,7 +28,7 @@ class SolrClient():
     @staticmethod
     def resp_msg(msg: str, resp: SolrResp, throw=True):
         print('resp_msg: {} [Status: {}]'.format(msg, resp.status_code))
-        #resp.status_code >= 400:
+        # resp.status_code >= 400:
         #    print(resp.text)
         #    if throw:
         #        raise RuntimeError(resp.text)
@@ -51,6 +52,28 @@ class SolrClient():
             "Created collection {}".format(col_name), SolrResp(resp, self.logger))
 
         return [{'name': col_name}], sc
+
+    def delete_collection(self, col_name: str):
+
+        resp = requests.get(
+            url='{}/api/collections?action=DELETE&name={}'.format(self.solr_url, col_name), timeout=10)
+
+        sc = self.resp_msg(
+            "Collection {} deleted succesfully".format(col_name), SolrResp(resp, self.logger))
+
+        return [{'name': col_name}], sc
+
+    def list_collections(self):
+
+        resp = requests.get(
+            url='{}/api/collections'.format(self.solr_url), timeout=10)
+        
+        self.logger.info(resp)
+
+        sc = self.resp_msg(
+            "Collection listing carried out succesfully", SolrResp(resp, self.logger))
+
+        return sc.resp['collections'], sc
 
     # def index_documents(documents_filename, embedding_filename):
     #     # Open the file containing text.

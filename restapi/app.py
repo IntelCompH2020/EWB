@@ -12,7 +12,7 @@ app.config["RESTX_MASK_SWAGGER"]=False
 api.init_app(app)
 
 if __name__ == '__main__':
-    cprint(figlet_format("Welcome to Intelcomp's EWB API",
+    cprint(figlet_format("EWB API",
            font='big'), 'blue', attrs=['bold'])
     print('\n')
     app.run(host='0.0.0.0', port=80, debug=True)

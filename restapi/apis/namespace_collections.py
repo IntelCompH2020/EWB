@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields, reqparse
 from core.client.solr_client import SolrClient
 
-RESTX_MASK_SWAGGER=False
+RESTX_MASK_SWAGGER = False
 
 # ======================================================
 # Define namespace for managing collections
@@ -40,3 +40,20 @@ class CreateCollection(Resource):
         args = parser.parse_args()
         collection = args['collection']
         return sc.create_collection(col_name=collection)
+
+
+@api.route('/deleteCollection/')
+class DeleteCollection(Resource):
+    @api.doc(parser=parser)
+    @api.marshal_with(coll, code=200)
+    def post(self):
+        args = parser.parse_args()
+        collection = args['collection']
+        return sc.delete_collection(col_name=collection)
+
+
+@api.route('/listCollections/')
+class ListCollections(Resource):
+    @api.marshal_with(coll, code=200)
+    def post(self):
+        return sc.list_collections()

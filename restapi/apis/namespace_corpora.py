@@ -2,17 +2,19 @@ from flask_restx import Namespace, Resource, fields
 
 api = Namespace('corpora', description='Corpora related operations')
 
-doc = api.model('Doc', {
-    'id': fields.String(required=True, description='The doc indentifier')
-})
+# corpus = api.model('Corpus', {
+#     'name': fields.String(required=True,
+#                           description='The corpus name'),
+#     'ndocs': fields.String(required=True,
+#                            description='The number of documents in the corpus')
+# })
 
-@api.route('/')
-class CatList(Resource):
-    @api.doc('list_docs')
-    @api.marshal_list_with(doc)
-    def get(self):
-        '''List all cats'''
-        DOCS = [
-            {'id': '1'},
-        ]
-        return DOCS
+
+# @api.route('/indexCorpus/')
+# class CreateCollection(Resource):
+#     @api.doc(parser=parser)
+#     @api.marshal_with(coll, code=200)
+#     def post(self):
+#         args = parser.parse_args()
+#         collection = args['collection']
+#         return sc.create_collection(col_name=collection)
