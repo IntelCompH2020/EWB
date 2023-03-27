@@ -2,6 +2,8 @@ import os
 
 import requests
 
+from core.entities.corpus import Corpus
+
 BATCH_SIZE = 100
 
 
@@ -49,7 +51,7 @@ class SolrResp:
         # If collections are returned in response, set data attribute to collections list
         if 'collections' in resp:
             self.data = resp['collections']
-
+            
 
 class SolrClient():
     """
@@ -166,6 +168,51 @@ class SolrClient():
         collections_dicts = [{"name": coll} for coll in colls]
 
         return collections_dicts, sc
+
+    def index_batch(self, docs_batch: list[dict], col_name: str, to_index: int, index_from: int, index_to: int):
+
+        headers_ = {'Content-type': 'application/json'}
+        data = {"add": docs_batch}
+
+        resp = requests.post(
+            url='{}/solr/{}/update'.format(self.solr_url, col_name), headers=headers_, json=data, timeout=10)
+
+        _, sc = self.resp_msg(
+            "Indexed documents from {} to {} / {} in Collection '{}'".format(index_from, index_to, to_index, col_name), SolrResp(resp, self.logger))
+
+        return sc
+
+    def index_documents(self, json_docs: list[dict], col_name: str):
+        docs_batch = []
+        index_from = 0
+        to_index = len(json_docs)
+        for index, doc in enumerate(json_docs):
+            docs_batch.append(doc)
+            # To index batches of documents at a time.
+            if index % BATCH_SIZE == 0 and index != 0:
+                # Index batch to Solr
+                self.index_batch(docs_batch, col_name, to_index,
+                                 index_from=index_from, index_to=index)
+                docs_batch = []
+                index_from = index + 1
+                self.logger.info("==== indexed {} documents ======"
+                                 .format(index))
+        # To index the rest, when 'documents' list < BATCH_SIZE.
+        if docs_batch:
+            self.index_batch(docs_batch, col_name, to_index,
+                             index_from=index_from, index_to=index)
+        self.logger.info("Finished indexing")
+
+        return
+
+    def index_corpus(self, corpus_logical_name: str, col_name: str):
+        corpus_to_index = "/data/source/" + corpus_logical_name
+        corpus = Corpus(corpus_to_index)
+        json_docs = corpus.get_docs_raw_info()
+
+        self.index_documents(json_docs, col_name)
+
+        return
 
     # def index_documents(documents_filename, embedding_filename):
     #     # Open the file containing text.

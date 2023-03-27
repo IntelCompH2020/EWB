@@ -21,10 +21,11 @@ class Corpus(object):
             self._logger = logging.getLogger('Entity Corpus')
 
         with pathlib.Path(path_to_logical).open('r', encoding='utf8') as fin:
-            logical_corpus = json.load(fin)
+            self._logical_corpus = json.load(fin)
 
+    def get_docs_raw_info(self) -> list[dict]:
         # Read all dataset that compose a logical corpus in one df
-        for idx, DtSet in enumerate(logical_corpus['Dtsets']):
+        for idx, DtSet in enumerate(self._logical_corpus['Dtsets']):
             df = dd.read_parquet(DtSet['parquet']).fillna("")
             idfld = DtSet["idfld"]
 
@@ -60,6 +61,12 @@ class Corpus(object):
             ])
             for row in json_lst
         ]
+        
+        return json_lst
 
     def add_info_tmmodel(self, path_to_tmmodel: pathlib.Path) -> None:
         pass
+
+
+if __name__ == '__main__':
+    corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/test/Cordis.json")

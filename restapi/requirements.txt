@@ -21,3 +21,5 @@ termcolor==2.2.0
 urllib3==1.26.15
 Werkzeug==2.2.3
 zipp==3.15.0
+dask==2022.7.0
+pyarrow==8.0.0
