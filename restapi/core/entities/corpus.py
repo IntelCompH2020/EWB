@@ -63,7 +63,3 @@ class Corpus(object):
 
     def add_info_tmmodel(self, path_to_tmmodel: pathlib.Path) -> None:
         pass
-
-
-if __name__ == '__main__':
-    corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/test/Cordis.json")

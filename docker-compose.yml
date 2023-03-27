@@ -17,7 +17,7 @@ services:
     networks:
       - ewb-net
     volumes:
-      -hostPath:containerPath:ro
+      - ./data:/data/source
   solr:
     image: solr:latest
     container_name: ewb-solr

@@ -5,6 +5,8 @@ WORKDIR /restapi
 
 COPY . .
 
+RUN mkdir -p /data/source
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 80
