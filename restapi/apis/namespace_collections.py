@@ -1,3 +1,10 @@
+"""
+This script defines a Flask RESTful namespace for managing Solr collections. 
+
+Author: Lorena Calvo-Bartolomé
+Date: 27/04/2023
+"""
+
 from flask_restx import Namespace, Resource, fields, reqparse
 from core.client.solr_client import SolrClient
 
@@ -35,6 +42,7 @@ parser.add_argument('collection', help='Specify collection name')
 @api.route('/createCollection/')
 class CreateCollection(Resource):
     @api.doc(parser=parser)
+    # serialize the output into a response body
     @api.marshal_with(coll, code=200)
     def post(self):
         args = parser.parse_args()
@@ -45,15 +53,15 @@ class CreateCollection(Resource):
 @api.route('/deleteCollection/')
 class DeleteCollection(Resource):
     @api.doc(parser=parser)
-    @api.marshal_with(coll, code=200)
-    def post(self):
+    def get(self):
         args = parser.parse_args()
         collection = args['collection']
-        return sc.delete_collection(col_name=collection)
+        sc.delete_collection(col_name=collection)
+        return '', 200
 
 
 @api.route('/listCollections/')
 class ListCollections(Resource):
     @api.marshal_with(coll, code=200)
-    def post(self):
+    def get(self):
         return sc.list_collections()

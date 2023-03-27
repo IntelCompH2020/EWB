@@ -1,40 +1,123 @@
 import os
+
 import requests
 
 BATCH_SIZE = 100
 
 
 class SolrResp:
+    """
+    A class to handle Solr API response and errors.
+
+    Attributes
+    ----------
+    status_code : int
+        The status code of the Solr API response.
+    data : list
+        A list of dictionaries that represents the data returned by the Solr API response.
+
+    Methods
+    -------
+    __init__(self, resp, logger):
+        Initializes SolrResp instance.
+    """
+
     def __init__(self, resp, logger):
-        self.resp = resp.json()
-        logger.info(self.resp)
+        """
+        Parameters
+        ----------
+        resp : requests.Response
+            The Solr API response.
+        logger : logging.Logger
+            The logger object to log messages and errors.
+        """
+
+        # Parse the response and set status code and data attributes accordingly
+        resp = resp.json()
         self.status_code = 400
+        self.data = []
+        # If response header has status 0, request is acknowledged
         if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
             logger.info('-- -- Request acknowledged')
             self.status_code = 200
         else:
+            # If there is an error in response header, set status code and text attributes accordingly
             self.status_code = resp['responseHeader']['status']
             self.text = resp['error']['msg']
             logger.error(
                 f'-- -- Request generated an error {self.status_code}: {self.text}')
+        # If collections are returned in response, set data attribute to collections list
+        if 'collections' in resp:
+            self.data = resp['collections']
 
 
 class SolrClient():
+    """
+    A class to handle Solr API requests.
+
+    Attributes
+    ----------
+    solr_url : str
+        The Solr URL.
+    solr : requests.Session
+        The requests session to use for Solr requests.
+    logger : logging.Logger
+        The logger object to log messages and errors.
+
+    Methods
+    -------
+    resp_msg(msg: str, resp: SolrResp):
+        Returns the data and status code of the Solr API response.
+    create_collection(col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
+        Creates a Solr collection.
+    delete_collection(col_name: str):
+        Deletes a Solr collection.
+    list_collections():
+        Returns a list of dictionaries that contains the name of each collection.
+    """
+
     def __init__(self, logger):
+        """
+        Parameters
+        ----------
+        logger : logging.Logger
+            The logger object to log messages and errors.
+        """
+
+        # Get the Solr URL from the environment variables
         self.solr_url = os.environ.get('SOLR_URL')
+
+        # Initialize requests session and logger
         self.solr = requests.Session()
         self.logger = logger
 
     @staticmethod
-    def resp_msg(msg: str, resp: SolrResp, throw=True):
+    def resp_msg(msg: str, resp: SolrResp):
+        """
+        Returns the data and status code of the Solr API response.
+
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        resp : SolrResp
+            The Solr API response object.
+
+        Returns
+        -------
+        list
+            A list of dictionaries that represents the data returned by the Solr API response.
+        int
+            The status code of the Solr API response.
+        """
         print('resp_msg: {} [Status: {}]'.format(msg, resp.status_code))
-        # resp.status_code >= 400:
-        #    print(resp.text)
-        #    if throw:
-        #        raise RuntimeError(resp.text)
-        return resp.status_code
+        return resp.data, resp.status_code
 
     def create_collection(self, col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
+        """
+        Creates a Solr collection with the given name, config, number of shards, and replication factor.
+        Returns a list with a dictionary containing the name of the created collection and the HTTP status code.
+        """
 
         headers_ = {"Content-Type": "application/json"}
         data = {
@@ -48,32 +131,41 @@ class SolrClient():
         resp = requests.post(
             url='{}/api/collections?'.format(self.solr_url), headers=headers_, json=data, timeout=10)
 
-        sc = self.resp_msg(
+        _, sc = self.resp_msg(
             "Created collection {}".format(col_name), SolrResp(resp, self.logger))
 
         return [{'name': col_name}], sc
 
     def delete_collection(self, col_name: str):
+        """
+        Deletes a Solr collection with the given name.
+        Returns a list with a dictionary containing the name of the deleted collection and the HTTP status code.
+        """
 
         resp = requests.get(
             url='{}/api/collections?action=DELETE&name={}'.format(self.solr_url, col_name), timeout=10)
 
-        sc = self.resp_msg(
+        _, sc = self.resp_msg(
             "Collection {} deleted succesfully".format(col_name), SolrResp(resp, self.logger))
 
         return [{'name': col_name}], sc
 
     def list_collections(self):
+        """
+        Lists all Solr collections.
+        Returns a list of dictionaries, where each dictionary has a key "name" with the value of the collection name,
+        and the HTTP status code.
+        """
 
         resp = requests.get(
             url='{}/api/collections'.format(self.solr_url), timeout=10)
-        
-        self.logger.info(resp)
 
-        sc = self.resp_msg(
+        colls, sc = self.resp_msg(
             "Collection listing carried out succesfully", SolrResp(resp, self.logger))
 
-        return sc.resp['collections'], sc
+        collections_dicts = [{"name": coll} for coll in colls]
+
+        return collections_dicts, sc
 
     # def index_documents(documents_filename, embedding_filename):
     #     # Open the file containing text.
