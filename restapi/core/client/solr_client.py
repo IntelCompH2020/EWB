@@ -3,6 +3,7 @@ import os
 import requests
 
 from core.entities.corpus import Corpus
+from core.entities.model import Model
 
 BATCH_SIZE = 100
 
@@ -221,3 +222,10 @@ class SolrClient():
         self.index_documents(json_docs, col_name)
 
         return
+
+    def update_info_model(self, model_name:str, col_name:str):
+        model_to_index = "/data/source/" + model_name
+        model = Model(model_to_index)
+        json_docs = model.add_info_tmmodel()
+        self.index_documents(json_docs, col_name)
+        pass

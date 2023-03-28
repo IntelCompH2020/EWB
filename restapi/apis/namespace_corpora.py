@@ -4,7 +4,7 @@ from core.client.solr_client import SolrClient
 # ======================================================
 # Define namespace for managing corpora
 # ======================================================
-api = Namespace('corpora', description='Corpora related operations')
+api = Namespace('Corpora', description='Corpora related operations')
 
 # ======================================================
 # Collection metadata for doc and response marshalling
@@ -24,8 +24,10 @@ sc = SolrClient(api.logger)
 
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
-parser.add_argument('corpus_name', help='Specify the name of the corpus to index')
+parser.add_argument(
+    'corpus_name', help='Specify the name of the corpus to index')
 parser.add_argument('collection', help='Specify collection name')
+
 
 @api.route('/indexCorpus/')
 class IndexCorpus(Resource):
@@ -36,4 +38,3 @@ class IndexCorpus(Resource):
         collection = args['collection']
         sc.index_corpus(corpus_name, collection)
         return '', 200
-    

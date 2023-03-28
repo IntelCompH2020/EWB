@@ -1,3 +1,13 @@
+import argparse
+import json
+import shutil
+import sys
+import warnings
+from pathlib import Path
+
+import numpy as np
+import scipy.sparse as sparse
+
 class TMmodel(object):
     # This class represents a Topic Model according to the LDA generative model
     # Essentially the TM is characterized by

@@ -1,10 +1,13 @@
 import json
 import math
 import pathlib
+import random
 from collections import OrderedDict
 
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
+import scipy.sparse as sparse
 from dask.diagnostics import ProgressBar
 
 
@@ -62,13 +65,10 @@ class Corpus(object):
         #     for row in json_lst
         # ]
 
-        #with open('/Users/lbartolome/Documents/GitHub/EWB/data/results.json', 'w') as fout:
+        # with open('/Users/lbartolome/Documents/GitHub/EWB/data/results.json', 'w') as fout:
         #    json.dump(json_lst, fout)
-            
-        return json_lst
 
-    def add_info_tmmodel(self, path_to_tmmodel: pathlib.Path) -> None:
-        pass
+        return json_lst
 
 
 # if __name__ == '__main__':
