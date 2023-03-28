@@ -34,6 +34,6 @@ class IndexCorpus(Resource):
         args = parser.parse_args()
         corpus_name = args['corpus_name']
         collection = args['collection']
-        sc.index_documents(corpus_name, collection)
+        sc.index_corpus(corpus_name, collection)
         return '', 200
     

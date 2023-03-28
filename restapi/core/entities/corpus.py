@@ -54,19 +54,24 @@ class Corpus(object):
         json_lst = json.loads(json_str)
 
         # rebuild the dictionary for each row, only including non-null values
-        json_lst = [
-            OrderedDict([
-                (key, row[key]) for key in ddf.columns
-                if (key in row) and row[key] is not None or (isinstance(row[key], float) and not math.isnan(row[key]))
-            ])
-            for row in json_lst
-        ]
-        
+        # json_lst = [
+        #     OrderedDict([
+        #         (key, row[key]) for key in ddf.columns
+        #         if (key in row) and row[key] is not None or (isinstance(row[key], float) and not math.isnan(row[key]))
+        #     ])
+        #     for row in json_lst
+        # ]
+
+        #with open('/Users/lbartolome/Documents/GitHub/EWB/data/results.json', 'w') as fout:
+        #    json.dump(json_lst, fout)
+            
         return json_lst
 
     def add_info_tmmodel(self, path_to_tmmodel: pathlib.Path) -> None:
         pass
 
 
-if __name__ == '__main__':
-    corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/test/Cordis.json")
+# if __name__ == '__main__':
+#     corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/data/Cordis.json")
+#     json_lst = corpus.get_docs_raw_info()
+#     print(json_lst[0:2])
