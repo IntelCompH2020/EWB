@@ -25,7 +25,17 @@ class SolrResp:
         Initializes SolrResp instance.
     """
 
-    def __init__(self, resp, logger):
+    def __init__(self, status_code, text, data):
+        self.status_code = status_code
+        self.text = text
+        self.data = data
+
+    @staticmethod
+    def from_error(status_code, text):
+        return SolrResp(status_code, text, [])
+
+    @staticmethod
+    def from_requests_response(resp, logger):
         """
         Parameters
         ----------
@@ -37,22 +47,25 @@ class SolrResp:
 
         # Parse the response and set status code and data attributes accordingly
         resp = resp.json()
-        self.status_code = 400
-        self.data = []
+        status_code = 400
+        data = []
+        text = ""
         # If response header has status 0, request is acknowledged
         if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
             logger.info('-- -- Request acknowledged')
-            self.status_code = 200
+            status_code = 200
         else:
             # If there is an error in response header, set status code and text attributes accordingly
-            self.status_code = resp['responseHeader']['status']
-            self.text = resp['error']['msg']
+            status_code = resp['responseHeader']['status']
+            text = resp['error']['msg']
             logger.error(
-                f'-- -- Request generated an error {self.status_code}: {self.text}')
+                f'-- -- Request generated an error {status_code}: {text}')
         # If collections are returned in response, set data attribute to collections list
         if 'collections' in resp:
-            self.data = resp['collections']
-            
+            data = resp['collections']
+
+        return SolrResp(status_code, text, data)
+
 
 class SolrClient():
     """
@@ -125,6 +138,14 @@ class SolrClient():
         Returns a list with a dictionary containing the name of the created collection and the HTTP status code.
         """
 
+        # Check if collection already exists
+        colls, _ = self.list_collections()
+        colls_names = [d["name"] for d in colls]
+        if col_name in colls_names:
+            _, sc = self.resp_msg(
+                "Collection {} already exists".format(col_name), SolrResp.from_error(409, "Collection {} already exists".format(col_name)))
+            return _, sc
+
         headers_ = {"Content-Type": "application/json"}
         data = {
             "create": {
@@ -138,7 +159,7 @@ class SolrClient():
             url='{}/api/collections?'.format(self.solr_url), headers=headers_, json=data, timeout=10)
 
         _, sc = self.resp_msg(
-            "Created collection {}".format(col_name), SolrResp(resp, self.logger))
+            "Created collection {}".format(col_name), SolrResp.from_requests_response(resp, self.logger))
 
         return [{'name': col_name}], sc
 
@@ -152,7 +173,7 @@ class SolrClient():
             url='{}/api/collections?action=DELETE&name={}'.format(self.solr_url, col_name), timeout=10)
 
         _, sc = self.resp_msg(
-            "Collection {} deleted succesfully".format(col_name), SolrResp(resp, self.logger))
+            "Collection {} deleted succesfully".format(col_name), SolrResp.from_requests_response(resp, self.logger))
 
         return [{'name': col_name}], sc
 
@@ -167,16 +188,16 @@ class SolrClient():
             url='{}/api/collections'.format(self.solr_url), timeout=10)
 
         colls, sc = self.resp_msg(
-            "Collection listing carried out succesfully", SolrResp(resp, self.logger))
+            "Collection listing carried out succesfully", SolrResp.from_requests_response(resp, self.logger))
 
         collections_dicts = [{"name": coll} for coll in colls]
 
         return collections_dicts, sc
 
     def index_batch(self, docs_batch: list[dict], col_name: str, to_index: int, index_from: int, index_to: int):
-        
+
         headers_ = {'Content-type': 'application/json'}
-        
+
         params = {
             'commitWithin': '1000',
             'overwrite': 'true',
@@ -187,7 +208,7 @@ class SolrClient():
             url='{}/solr/{}/update'.format(self.solr_url, col_name), headers=headers_, json=docs_batch, timeout=10, params=params, proxies={})
 
         _, sc = self.resp_msg(
-            "Indexed documents from {} to {} / {} in Collection '{}'".format(index_from, index_to, to_index, col_name), SolrResp(resp, self.logger))
+            "Indexed documents from {} to {} / {} in Collection '{}'".format(index_from, index_to, to_index, col_name), SolrResp.from_requests_response(resp, self.logger))
 
         return sc
 
@@ -222,10 +243,16 @@ class SolrClient():
         self.index_documents(json_docs, col_name)
 
         return
-
-    def update_info_model(self, model_name:str, col_name:str):
+    
+    def index_model(self, model_name: str):
         model_to_index = "/data/source/" + model_name
         model = Model(model_to_index)
-        json_docs = model.add_info_tmmodel()
-        self.index_documents(json_docs, col_name)
-        pass
+        
+        self.logger.info("Indexing model info in docs")
+        json_docs, corpus_col_name = model.get_model_info_update()
+        self.index_documents(json_docs, corpus_col_name)
+
+        self.logger.info("Indexing model info in model")
+        json_tpcs = model.get_model_info()
+        self.index_documents(json_tpcs, model_name)
+        

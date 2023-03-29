@@ -1,3 +1,9 @@
+"""
+This script defines a Flask RESTful namespace for managing corpora stored in Solr as collections. 
+
+Author: Lorena Calvo-Bartolomé
+Date: 27/04/2023
+"""
 from flask_restx import Namespace, Resource, fields, reqparse
 from core.client.solr_client import SolrClient
 

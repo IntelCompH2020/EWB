@@ -74,4 +74,4 @@ class Corpus(object):
 # if __name__ == '__main__':
 #     corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/data/Cordis.json")
 #     json_lst = corpus.get_docs_raw_info()
-#     print(json_lst[0:2])
+#     print(json_lst[0].keys())

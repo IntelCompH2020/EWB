@@ -1,11 +1,13 @@
-
 import json
 import os
 import pathlib
 import random
-import scipy.sparse as sparse
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import scipy.sparse as sparse
+from core.entities.tm_model import TMmodel
+
 
 class Model(object):
     def __init__(self, path_to_model: pathlib.Path, logger=None) -> None:
@@ -24,23 +26,64 @@ class Model(object):
         #tmmodel = TMmodel(path_to_tmmodel)
         # self._create_model(tmmodel)
 
-    def _create_model(self, path_to_model):
+    @staticmethod
+    def sum_up_to(vector, max_sum):
+        x = np.array(list(map(np.int_, vector*max_sum))).ravel()
+        pos_idx = list(np.where(x != 0)[0])
+        while np.sum(x) != max_sum:
+            idx = random.choice(pos_idx)
+            x[idx] += 1
+        return x
 
-        # read tr config
-        tr_config = path_to_model.joinpath("trainconfig.json")
-        with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
-            tr_config = json.load(fin)
+    def get_model_info(self) -> list[dict]:
 
-        pass
-    
-    def add_info_tmmodel(self) -> None:
-        
         path_to_model = self.path_to_model
 
         # read tr config
         tr_config = path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
+
+        tmmodel = TMmodel(path_to_model.joinpath("TMmodel"))
+        df, vocab_id2w = tmmodel.to_dataframe()
+        df = df.apply(pd.Series.explode)
+        df.reset_index(drop=True)
+        df["id"] = [f"t{i}" for i in range(len(df))]
+        cols = df.columns.tolist()
+        cols = cols[-1:] + cols[:-1]
+        df = df[cols]
+
+        # Get betas string representation
+        def get_tp_str_rpr(vector, max_sum, vocab_id2w):
+            vector = Model.sum_up_to(vector, max_sum)
+            rpr = ""
+            for idx, val in enumerate(vector):
+                rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
+            rpr = rpr.rstrip()
+            return rpr
+
+        df["betas"] = df["betas"].apply(
+            lambda x: get_tp_str_rpr(x, 1000, vocab_id2w))
+
+        json_str = df.to_json(orient='records')
+        json_lst = json.loads(json_str)
+
+        return json_lst
+
+    def get_model_info_update(self) -> list[dict]:
+        """
+        Adds the information that goes to a corpus collection
+        """
+
+        path_to_model = self.path_to_model
+        model_name = path_to_model.as_posix().split("/")[-1]
+
+        # Read tr configuration
+        tr_config = path_to_model.joinpath("trainconfig.json")
+        with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
+            tr_config = json.load(fin)
+            
+        collection_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
 
         thetas = sparse.load_npz(
             path_to_model.joinpath('TMmodel/thetas.npz'))
@@ -54,41 +97,38 @@ class Model(object):
             print("TODO")
 
         # Get doc-topic representation
-        def sum_up_to(vector, max_sum):
-            x = np.array(list(map(np.int_, vector*max_sum))).ravel()
-            pos_idx = list(np.where(x != 0)[0])
-            while np.sum(x) != max_sum:
-                idx = random.choice(pos_idx)
-                x[idx] += 1
-            return x
-
-        def get_str_rpr(vector, max_sum):
-            vector = sum_up_to(vector, max_sum)
+        def get_doc_str_rpr(vector, max_sum):
+            vector = Model.sum_up_to(vector, max_sum)
             rpr = ""
             for idx, val in enumerate(vector):
                 rpr += "t" + str(idx) + "|" + str(val) + " "
             rpr = rpr.rstrip()
             return rpr
 
-        doc_tpc_rpr = [get_str_rpr(thetas_dense[row, :], 1000)
+        doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
                        for row in range(len(thetas_dense))]
 
+        model_key = 'doctpc_' + model_name
         df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr)),
-                          columns=['id', 'doc-tpc'])
-        
+                          columns=['id', model_key])
+
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
-        
+
         new_list = []
         for d in json_lst:
-            tpc_dict = { 'set': d['doc-tpc'] }
-            d['doc-tpc'] = tpc_dict
+            tpc_dict = {'set': d[model_key]}
+            models_dict = {'add': model_name}
+            d[model_key] = tpc_dict
+            d['models'] = models_dict
             new_list.append(d)
 
-        return new_list
+        return new_list, collection_name
+
 
 # if __name__ == '__main__':
 #     model = Model("/Users/lbartolome/Documents/GitHub/EWB/data/Mallet-25")
-#     json_lst = model.add_info_tmmodel()
-#     print(json_lst[0:2])
-    
+#     #json_lst = model.get_model_info_update()
+#     #print(json_lst[0])
+#     df = model.get_model_info()
+#     print(df[0].keys())

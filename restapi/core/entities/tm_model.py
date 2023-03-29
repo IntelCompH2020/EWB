@@ -7,6 +7,8 @@ from pathlib import Path
 
 import numpy as np
 import scipy.sparse as sparse
+import pandas as pd
+
 
 class TMmodel(object):
     # This class represents a Topic Model according to the LDA generative model
@@ -132,7 +134,7 @@ class TMmodel(object):
         self._ndocs_active = np.array((self._thetas != 0).sum(0).tolist()[0])
         self._tpc_descriptions = [el[1]
                                   for el in self.get_tpc_word_descriptions()]
-        self.calculate_topic_coherence()#cohrs_aux
+        self.calculate_topic_coherence()  # cohrs_aux
         self._tpc_labels = [el[1] for el in self.get_tpc_labels(labels)]
 
         # We are ready to save all variables in the model
@@ -196,12 +198,12 @@ class TMmodel(object):
         with self._TMfolder.joinpath("pyLDAvis.html").open("w") as f:
             pyLDAvis.save_html(vis_data, f)
         # TODO: Check substituting by "pyLDAvis.prepared_data_to_html"
-        #self._modify_pyldavis_html(self._TMfolder.as_posix())
+        # self._modify_pyldavis_html(self._TMfolder.as_posix())
 
         return
-    
+
     def _save_cohr(self):
-        
+
         np.save(self._TMfolder.joinpath(
             'topic_coherence.npy'), self._topic_coherence)
 
@@ -344,7 +346,7 @@ class TMmodel(object):
             self._topic_entropy = np.load(
                 self._TMfolder.joinpath('topic_entropy.npy'))
 
-    def calculate_topic_coherence(self, metrics=["c_v","c_npmi"], n_words=15):
+    def calculate_topic_coherence(self, metrics=["c_v", "c_npmi"], n_words=15):
 
         # Load topic information
         if self._tpc_descriptions is None:
@@ -361,7 +363,8 @@ class TMmodel(object):
         else:
             corpusFile = self._TMfolder.parent.joinpath('corpus.txt')
         with corpusFile.open("r", encoding="utf-8") as f:
-            corpus = [line.rsplit(" 0 ")[1].strip().split() for line in f.readlines() if line.rsplit(" 0 ")[1].strip().split() != []]
+            corpus = [line.rsplit(" 0 ")[1].strip().split() for line in f.readlines(
+            ) if line.rsplit(" 0 ")[1].strip().split() != []]
 
         # Import necessary modules for coherence calculation with Gensim
         # TODO: This needs to be substituted by a non-Gensim based calculation of the coherence
@@ -400,7 +403,7 @@ class TMmodel(object):
                         '-- -- -- Coherence metric provided is not available.')
             self._topic_coherence = cohrs_aux
             print(self._topic_coherence)
-            
+
     def _load_topic_coherence(self):
         if self._topic_coherence is None:
             self._topic_coherence = np.load(
@@ -522,7 +525,7 @@ class TMmodel(object):
         if self._tpc_labels is None:
             with self._TMfolder.joinpath('tpc_labels.txt').open('r', encoding='utf8') as fin:
                 self._tpc_labels = [el.strip() for el in fin.readlines()]
-                
+
     def get_alphas(self):
         self._load_alphas()
         return self._alphas
@@ -784,12 +787,12 @@ class TMmodel(object):
             return 0
 
     def recalculate_cohrs(self):
-        
+
         self.load_tpc_descriptions()
-        
+
         try:
             self.calculate_topic_coherence()
-            
+
             self._save_cohr()
 
             self._logger.info(
@@ -799,3 +802,28 @@ class TMmodel(object):
             self._logger.info(
                 '-- -- Topics cohrence recalculation  an error. Operation failed')
             return 0
+
+    def to_dataframe(self):
+        self._load_alphas()
+        self._load_betas()
+        self._load_thetas()
+        self._load_betas_ds()
+        self._load_topic_entropy()
+        self._load_topic_coherence()
+        self.load_tpc_descriptions()
+        self.load_tpc_labels()
+        self._load_ndocs_active()
+        self._load_vocab()
+        self._load_vocab_dicts()
+
+        data = {
+            "betas": [self._betas],
+            "alphas": [self._alphas],
+            "topic_entropy": [self._topic_entropy],
+            "topic_coherence": [self._topic_coherence],
+            "ndocs_active": [self._ndocs_active],
+            "tpc_descriptions": [self._tpc_descriptions],
+            "tpc_labels": [self._tpc_labels],
+        }
+        df = pd.DataFrame(data)
+        return df, self._vocab_id2w

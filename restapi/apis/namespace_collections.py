@@ -8,7 +8,6 @@ Date: 27/04/2023
 from flask_restx import Namespace, Resource, fields, reqparse
 from core.client.solr_client import SolrClient
 
-RESTX_MASK_SWAGGER = False
 
 # ======================================================
 # Define namespace for managing collections
@@ -47,7 +46,11 @@ class CreateCollection(Resource):
     def post(self):
         args = parser.parse_args()
         collection = args['collection']
-        return sc.create_collection(col_name=collection)
+        corpus, err = sc.create_collection(col_name=collection)
+        if err == 409:
+            return f"Collection {collection} already exists.", err
+        else:
+            return corpus, err
 
 
 @api.route('/deleteCollection/')
