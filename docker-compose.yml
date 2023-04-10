@@ -25,7 +25,7 @@ services:
     volumes:
       - ./db/data/solr:/var/solr
       #- ./logs/solr:/opt/solr/server/logs
-      #-./contrib/jscustomsimilarity:/opt/solr/contrib/jscustomsimilarity --> para copiar plugin semejanza
+      - ./solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target:/opt/solr/dist/plugins
       - ./solr_config:/opt/solr/server/solr
     ports:
       - 8983:8983

@@ -116,7 +116,7 @@
 
     <!-- Added fields  -->
     <field name="raw_text" type="string" indexed="true" stored="true"  multiValued="true"/>
-    <field name="top_dstr" type="text_tfdl" indexed="true" stored="true"  multiValued="true"/>
+    <!-- <field name="top_dstr" type="text_tfdl" indexed="true" stored="true"  multiValued="true"/> -->
 
     <field name="_text_" type="text_general" indexed="true" stored="false" multiValued="true"/>
 
@@ -310,13 +310,23 @@
       </analyzer>
     </fieldType>
 
-    <dynamicField name="*_tfdl" type="text_tfdl"  indexed="true"  stored="true" />
-     <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >
+    <!-- <dynamicField name="*_tfdl" type="text_tfdl"  indexed="true"  stored="true" /> -->
+
+    <fieldType name="VectorField" class="solr.TextField" indexed="true" termOffsets="true" stored="true" termPayloads="true" termPositions="true" termVectors="true" storeOffsetsWithPositions="true">
+      <analyzer>
+        <tokenizer class="solr.WhitespaceTokenizerFactory"/>
+        <filter class="solr.DelimitedPayloadTokenFilterFactory" encoder="integer"/>
+      </analyzer>
+    </fieldType>
+
+    <field name="vector" type="VectorField" indexed="true" termOffsets="true" stored="true" termPositions="true" termVectors="true" multiValued="true"/>
+    
+     <!-- <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >
       <analyzer>
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.DelimitedTermFrequencyTokenFilterFactory" delimiter="|"  />
       </analyzer>
-    </fieldType>
+    </fieldType> -->
 
 
     <!-- SortableTextField generaly functions exactly like TextField,

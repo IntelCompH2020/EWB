@@ -108,7 +108,8 @@ class Model(object):
         doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
                        for row in range(len(thetas_dense))]
 
-        model_key = 'doctpc_' + model_name
+        #model_key = 'doctpc_' + model_name
+        model_key = 'vector'
         df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr)),
                           columns=['id', model_key])
 
