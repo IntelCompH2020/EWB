@@ -105,7 +105,7 @@ class SolrClient():
 
         # Initialize requests session and logger
         self.solr = requests.Session()
-        #self.logger = logger
+        # self.logger = logger
         import logging
         logging.basicConfig(level='DEBUG')
         self.logger = logging.getLogger('Solr')
@@ -131,6 +131,33 @@ class SolrClient():
         """
         print('resp_msg: {} [Status: {}]'.format(msg, resp.status_code))
         return resp.data, resp.status_code
+
+    # ======================================================
+    # MANAGING (Creation, deletion, listing, etc.)
+    # ======================================================
+    def add_vector_field_to_schema(self, col_name: str, field_name: str):
+
+        headers_ = {"Content-Type": "application/json"}
+        data = {
+            "add-field": {
+                "name": field_name,
+                "type": "VectorField",
+                "indexed": "true",
+                "termOffsets": "true",
+                "stored": "true",
+                "termPositions": "true",
+                "termVectors": "true",
+                "multiValued": "true"
+            }
+        }
+
+        resp = requests.post(
+            url='{}/api/collections/{}/schema?'.format(self.solr_url, col_name), headers=headers_, json=data, timeout=10)
+
+        _, sc = self.resp_msg(
+            "Modified schema {}".format(col_name), SolrResp.from_requests_response(resp, self.logger))
+
+        return [{'name': col_name}], sc
 
     def create_collection(self, col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
         """
@@ -195,6 +222,26 @@ class SolrClient():
         return collections_dicts, sc
 
     def index_batch(self, docs_batch: list[dict], col_name: str, to_index: int, index_from: int, index_to: int):
+        """Takes a batch of documents, a Solr collection name, and the indices of the batch to be indexed, and sends a POST request to the Solr server to index the documents. The method returns the status code of the response.
+
+        Parameters
+        ----------
+        docs_batch : list[dict])
+            A list of dictionaries where each dictionary represents a document to be indexed.
+        col_name : str
+            The name of the Solr collection to index the documents into.
+        to_index : int
+            The total number of documents to be indexed.
+        index_from :int
+            The starting index of the documents in the batch to be indexed.
+        index_to: int
+            The ending index of the documents in the batch to be indexed.
+
+        Returns
+        -------
+        sc : int
+            The status code of the response.
+        """
 
         headers_ = {'Content-type': 'application/json'}
 
@@ -212,7 +259,26 @@ class SolrClient():
 
         return sc
 
+    # ======================================================
+    # INDEXING
+    # ======================================================
+
     def index_documents(self, json_docs: list[dict], col_name: str):
+        """It takes a list of documents in JSON format and a Solr collection name, splits the list into batches, and sends a POST request to the Solr server to index the documents in batches. The method returns the status code of the response.
+
+        Parameters
+        ----------
+        json_docs : list[dict]
+            A list of dictionaries where each dictionary represents a document to be indexed.
+        col_name : str 
+            The name of the Solr collection to index the documents into.
+
+        Returns
+        -------
+        sc : int
+            The status code of the response.    
+        """
+
         docs_batch = []
         index_from = 0
         to_index = len(json_docs)
@@ -235,24 +301,97 @@ class SolrClient():
 
         return
 
-    def index_corpus(self, corpus_logical_name: str, col_name: str):
-        corpus_to_index = "/data/source/" + corpus_logical_name
+    def index_corpus(self, corpus_logical_name: str):
+        """Given the logical name of a corpus file (i.e., if we have a logical corpus named 'Cordis.json', corpus_logical_name should be 'Cordis'), it creates a Solr collection with such a name, reades the corpus file, extracts the raw information of each document, and sends a POST request to the Solr server to index the documents in batches.
+
+        Parameters
+        ----------
+        corpus_logical_name : str
+            The logical name of the corpus file to be indexed. The file should be located at /data/source/ directory.
+        col_name : str
+            The name of the Solr collection to index the documents into.
+        """
+
+        corpus_to_index = "/data/source/" + corpus_logical_name + ".json"
+
+        # 1. Create collection
+        corpus, err = self.create_collection(col_name=corpus_logical_name)
+        if err == 409:
+            self.logger.info(
+                f"Collection {corpus_logical_name} already exists.")
+            return
+        else:
+            self.logger.info(
+                f"Collection {corpus_logical_name} successfully created.")
+
+        # 2. Index documents
         corpus = Corpus(corpus_to_index)
         json_docs = corpus.get_docs_raw_info()
-
-        self.index_documents(json_docs, col_name)
+        self.logger.info(
+            f"Indexing of {corpus_logical_name} starts.")
+        self.index_documents(json_docs, corpus_logical_name)
+        self.logger.info(
+            f"Indexing of {corpus_logical_name} completed.")
 
         return
-    
+
     def index_model(self, model_name: str):
+        """It takes the name of a model file, reads the file, extracts the model information, and sends a POST request to the Solr server to index the information in two different collections. The first collection will contain the model information in a document format, and the second collection will contain the model information as a topic.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model file to be indexed. The file should be located at /data/source/ directory.
+        """
+
         model_to_index = "/data/source/" + model_name
+
+        # 1. Create collection
+        corpus, err = self.create_collection(col_name=model_name)
+        if err == 409:
+            self.logger.info(
+                f"Collection {model_name} already exists.")
+            return
+        else:
+            self.logger.info(
+                f"Collection {model_name} successfully created.")
+
         model = Model(model_to_index)
-        
-        self.logger.info("Indexing model info in docs")
         json_docs, corpus_col_name = model.get_model_info_update()
+
+        # 2. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
+        model_key = 'doctpc_' + model_name
+        self.logger.info(
+            f"Adding field {model_key} in {corpus_col_name} collection")
+        corpus, err = self.add_vector_field_to_schema(
+            corpus_col_name, model_key)
+        self.logger.info(corpus)
+        self.logger.info(err)
+
+        # 3. Index doc-tpc information in corpus collection
+        self.logger.info(
+            f"Indexing model information in {corpus_col_name} collection")
         self.index_documents(json_docs, corpus_col_name)
 
         self.logger.info("Indexing model info in model")
         json_tpcs = model.get_model_info()
         self.index_documents(json_tpcs, model_name)
-        
+
+    # ======================================================
+    # QUERIES
+    # ======================================================
+    def execute_query(self, index: str, query):
+        url = '{}/{}/select?'.format(self.solr_base_ep, index)
+
+        resp = requests.post(url, data=query)
+        # resp_msg(msg='Query {}...'.format(str(query)[:20]), resp=resp)
+        resp = resp.json()
+
+        # Transform to be consistent
+        for doc in resp['response']['docs']:
+            if 'score' in doc:
+                doc['_score'] = doc['score']
+
+        return resp['response']['docs']
+
+    # VER CÓMO decir el field type al meter en la colección!!

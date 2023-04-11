@@ -1,13 +1,7 @@
 import json
-import math
 import pathlib
-import random
-from collections import OrderedDict
 
 import dask.dataframe as dd
-import numpy as np
-import pandas as pd
-import scipy.sparse as sparse
 from dask.diagnostics import ProgressBar
 
 
@@ -27,8 +21,12 @@ class Corpus(object):
             self._logical_corpus = json.load(fin)
 
     def get_docs_raw_info(self) -> list[dict]:
-        # Read all dataset that compose a logical corpus in one df
-        for idx, DtSet in enumerate(self._logical_corpus['Dtsets']):
+        if len(self._logical_corpus['Dtsets']) > 1:
+            self._logger.error(
+                f"Only models coming from a logical corpus associated with one raw dataset can be processed.")
+            return
+        else:
+            DtSet = self._logical_corpus['Dtsets'][0]
             df = dd.read_parquet(DtSet['parquet']).fillna("")
             idfld = DtSet["idfld"]
 
@@ -44,14 +42,8 @@ class Corpus(object):
             df = df.rename(
                 columns={idfld: "id"})
 
-            # Concatenate dataframes
-            if idx == 0:
-                trDF = df
-            else:
-                trDF = dd.concat([trDF, df], axis=0, join='outer')
-
         with ProgressBar():
-            ddf = trDF.compute(scheduler='processes')
+            ddf = df.compute(scheduler='processes')
 
         json_str = ddf.to_json(orient='records')
         json_lst = json.loads(json_str)

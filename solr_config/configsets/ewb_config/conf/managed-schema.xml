@@ -310,7 +310,7 @@
       </analyzer>
     </fieldType>
 
-    <!-- <dynamicField name="*_tfdl" type="text_tfdl"  indexed="true"  stored="true" /> -->
+    <dynamicField name="*_tfdl" type="VectorField"  indexed="true"  stored="true" /> 
 
     <fieldType name="VectorField" class="solr.TextField" indexed="true" termOffsets="true" stored="true" termPayloads="true" termPositions="true" termVectors="true" storeOffsetsWithPositions="true">
       <analyzer>
@@ -319,7 +319,7 @@
       </analyzer>
     </fieldType>
 
-    <field name="vector" type="VectorField" indexed="true" termOffsets="true" stored="true" termPositions="true" termVectors="true" multiValued="true"/>
+    <field name="betas" type="VectorField" indexed="true" termOffsets="true" stored="true" termPositions="true" termVectors="true" multiValued="true"/>
     
      <!-- <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >
       <analyzer>
