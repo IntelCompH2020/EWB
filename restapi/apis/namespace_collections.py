@@ -2,7 +2,7 @@
 This script defines a Flask RESTful namespace for managing Solr collections. 
 
 Author: Lorena Calvo-Bartolomé
-Date: 27/04/2023
+Date: 27/03/2023
 """
 
 from flask_restx import Namespace, Resource, fields, reqparse

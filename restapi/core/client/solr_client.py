@@ -8,9 +8,10 @@ The SolrResp class is for handling Solr API response and errors.
 The SolrClient class is for handling Solr API requests. 
 
 Author: Lorena Calvo-Bartolomé
-Date: 27/04/2023
+Date: 27/03/2023
 """
 
+import logging
 import os
 
 import requests
@@ -21,6 +22,8 @@ from urllib import parse
 
 
 BATCH_SIZE = 100
+CORPUS_COL_PREFIX = "Corpus_"
+MODEL_COL_PREFIX = "Model_"
 
 
 class SolrResults(object):
@@ -122,6 +125,8 @@ class SolrResp(object):
                  results: SolrResults = None):
         """Init method.
 
+        Parameters
+        ----------
         status_code: int
             The status code of the Solr API response.
         text: str
@@ -137,11 +142,11 @@ class SolrResp(object):
         self.results = results
 
     @staticmethod
-    def from_error(status_code, text):
+    def from_error(status_code: int, text: str):
         return SolrResp(status_code, text, [])
 
     @staticmethod
-    def from_requests_response(resp, logger):
+    def from_requests_response(resp: requests.Response, logger: logging.Logger):
         """
         Parameters
         ----------
@@ -179,32 +184,12 @@ class SolrResp(object):
         return SolrResp(status_code, text, data, results)
 
 
-class SolrClient():
+class SolrClient(object):
     """
     A class to handle Solr API requests.
-
-    Attributes
-    ----------
-    solr_url : str
-        The Solr URL.
-    solr : requests.Session
-        The requests session to use for Solr requests.
-    logger : logging.Logger
-        The logger object to log messages and errors.
-
-    Methods
-    -------
-    resp_msg(msg: str, resp: SolrResp):
-        Returns the data and status code of the Solr API response.
-    create_collection(col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
-        Creates a Solr collection.
-    delete_collection(col_name: str):
-        Deletes a Solr collection.
-    list_collections():
-        Returns a list of dictionaries that contains the name of each collection.
     """
 
-    def __init__(self, logger):
+    def __init__(self, logger: logging.Logger):
         """
         Parameters
         ----------
@@ -346,9 +331,9 @@ class SolrClient():
 
         return [{'name': col_name}], solr_resp.status_code
 
-    def list_collections(self):
+    def list_collections(self, type=None):
         """
-        Lists all Solr collections.
+        Lists all Solr collections. If type is given, only lists the collections associated with the given type. E.g., if type = "corpus", and Solr holfs the collections "Corpus_Cordis" and "Model_Mallet-25", only the first of the latter will be returned.
         Returns a list of dictionaries, where each dictionary has a key "name" with the value of the collection name,
         and the HTTP status code.
         """
@@ -359,11 +344,22 @@ class SolrClient():
         solr_resp = self._do_request(type="get", url=url_)
 
         # Get collections in the format required my the Collection namespace
-        collections_dicts = [{"name": coll} for coll in solr_resp.data]
+        if type:
+            collections_dicts = [{"name": coll}
+                                 for coll in solr_resp.data
+                                 if coll.split("_")[0].lower() == type.lower()]
+
+        else:
+            collections_dicts = [{"name": coll} for coll in solr_resp.data]
 
         return collections_dicts, solr_resp.status_code
 
-    def index_batch(self, docs_batch: list[dict], col_name: str, to_index: int, index_from: int, index_to: int):
+    def index_batch(self,
+                    docs_batch: list[dict],
+                    col_name: str,
+                    to_index: int,
+                    index_from: int,
+                    index_to: int):
         """Takes a batch of documents, a Solr collection name, and the indices of the batch to be indexed, and sends a POST request to the Solr server to index the documents. The method returns the status code of the response.
 
         Parameters
@@ -410,7 +406,9 @@ class SolrClient():
     # INDEXING
     # ======================================================
 
-    def index_documents(self, json_docs: list[dict], col_name: str):
+    def index_documents(self,
+                        json_docs: list[dict],
+                        col_name: str):
         """It takes a list of documents in JSON format and a Solr collection name, splits the list into batches, and sends a POST request to the Solr server to index the documents in batches. The method returns the status code of the response.
 
         Parameters
@@ -460,25 +458,26 @@ class SolrClient():
         """
 
         corpus_to_index = "/data/source/" + corpus_logical_name + ".json"
+        corpus_col = CORPUS_COL_PREFIX + corpus_logical_name
 
         # 1. Create collection
-        corpus, err = self.create_collection(col_name=corpus_logical_name)
+        corpus, err = self.create_collection(col_name=corpus_col)
         if err == 409:
             self.logger.info(
-                f"Collection {corpus_logical_name} already exists.")
+                f"Collection {corpus_col} already exists.")
             return
         else:
             self.logger.info(
-                f"Collection {corpus_logical_name} successfully created.")
+                f"Collection {corpus_col} successfully created.")
 
         # 2. Index documents
         corpus = Corpus(corpus_to_index)
         json_docs = corpus.get_docs_raw_info()
         self.logger.info(
-            f"Indexing of {corpus_logical_name} starts.")
-        self.index_documents(json_docs, corpus_logical_name)
+            f"Indexing of {corpus_logical_name} in {corpus_col} starts.")
+        self.index_documents(json_docs, corpus_col)
         self.logger.info(
-            f"Indexing of {corpus_logical_name} completed.")
+            f"Indexing of {corpus_logical_name} in {corpus_col} completed.")
 
         return
 
@@ -493,19 +492,21 @@ class SolrClient():
         """
 
         model_to_index = "/data/source/" + model_name
+        model_col = MODEL_COL_PREFIX + model_name
 
         # 1. Create collection
-        corpus, err = self.create_collection(col_name=model_name)
+        corpus, err = self.create_collection(col_name=model_col)
         if err == 409:
             self.logger.info(
-                f"Collection {model_name} already exists.")
+                f"Collection {model_col} already exists.")
             return
         else:
             self.logger.info(
-                f"Collection {model_name} successfully created.")
+                f"Collection {model_col} successfully created.")
 
         model = Model(model_to_index)
-        json_docs, corpus_col_name = model.get_model_info_update()
+        json_docs, corpus_name = model.get_model_info_update()
+        corpus_col_name = CORPUS_COL_PREFIX + corpus_name
 
         # 2. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
         model_key = 'doctpc_' + model_name
@@ -522,9 +523,9 @@ class SolrClient():
         self.index_documents(json_docs, corpus_col_name)
 
         self.logger.info(
-            f"Indexing model information in {model_name} collection")
+            f"Indexing model information in {model_col} collection")
         json_tpcs = model.get_model_info()
-        self.index_documents(json_tpcs, model_name)
+        self.index_documents(json_tpcs, model_col)
 
     # ======================================================
     # QUERIES

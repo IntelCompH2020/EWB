@@ -8,7 +8,7 @@ from termcolor import cprint
 # Create Flask app
 app = Flask(__name__)
 # Deactivate the default mask parameter.
-app.config["RESTX_MASK_SWAGGER"]=False
+app.config["RESTX_MASK_SWAGGER"] = False
 api.init_app(app)
 
 if __name__ == '__main__':

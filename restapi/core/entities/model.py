@@ -1,3 +1,14 @@
+"""
+This module is a class implementation to manage and hold all the information associated with a TMmodel. It provides methods to retrieve information about the model such as topic distribution over documents, topic-word probabilities, and betas. 
+
+Note:
+-----
+This module assumes that the topic model has been trained using the TMmodel class from the same package.
+
+Author: Lorena Calvo-Bartolomé
+Date: 27/03/2023
+"""
+
 import json
 import os
 import pathlib
@@ -10,7 +21,22 @@ from core.entities.tm_model import TMmodel
 
 
 class Model(object):
-    def __init__(self, path_to_model: pathlib.Path, logger=None) -> None:
+    """
+    A class to manage and hold all the information associated with a TMmodel.
+    """
+
+    def __init__(self,
+                 path_to_model: pathlib.Path,
+                 logger=None) -> None:
+        """Init method.
+
+        Parameters
+        ----------
+        path_to_model: pathlib.Path
+            Path to the TMmodel folder.
+        logger : logging.Logger
+            The logger object to log messages and errors.
+        """
 
         if logger:
             self._logger = logger
@@ -23,11 +49,25 @@ class Model(object):
             self._logger.error(
                 '-- -- The provided model path does not exist.')
         self.path_to_model = pathlib.Path(path_to_model)
-        #tmmodel = TMmodel(path_to_tmmodel)
-        # self._create_model(tmmodel)
 
     @staticmethod
-    def sum_up_to(vector, max_sum):
+    def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
+        """It takes in a vector and a max_sum value and returns a NumPy array with the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
+
+        Parameters
+        ----------
+        vector: 
+            The vector to be adjusted.
+        max_sum: int
+            Number representing the maximum sum of the vector elements.
+
+        Returns:
+        --------
+        x: 
+            A NumPy array of the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
+        """
+        # TODO: Get types
+        print(type(vector))
         x = np.array(list(map(np.int_, vector*max_sum))).ravel()
         pos_idx = list(np.where(x != 0)[0])
         while np.sum(x) != max_sum:
@@ -36,6 +76,13 @@ class Model(object):
         return x
 
     def get_model_info(self) -> list[dict]:
+        """It retrieves the information about a topic model and returns it as a list of dictionaries.
+
+        Returns:
+        --------
+        json_lst: list[dict]
+            A list of dictionaries containing information about the topic model.
+        """
 
         path_to_model = self.path_to_model
 
@@ -72,7 +119,12 @@ class Model(object):
 
     def get_model_info_update(self) -> list[dict]:
         """
-        Adds the information that goes to a corpus collection
+        Retrieves the information from the model that goes to a corpus collection (document-topic proportions) and save it as an update in the format required by Solr.
+
+        Returns:
+        --------
+        json_lst: list[dict]
+            A list of dictionaries with thr document-topic proportions update.
         """
 
         path_to_model = self.path_to_model
@@ -82,7 +134,7 @@ class Model(object):
         tr_config = path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
-            
+
         collection_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
 
         thetas = sparse.load_npz(

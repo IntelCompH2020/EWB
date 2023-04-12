@@ -1,7 +1,4 @@
-import argparse
-import json
 import shutil
-import sys
 import warnings
 from pathlib import Path
 
@@ -278,7 +275,7 @@ class TMmodel(object):
             self._thetas = sparse.load_npz(
                 self._TMfolder.joinpath('thetas.npz'))
             self._ntopics = self._thetas.shape[1]
-            #self._ndocs_active = np.array((self._thetas != 0).sum(0).tolist()[0])
+            # self._ndocs_active = np.array((self._thetas != 0).sum(0).tolist()[0])
 
     def _load_ndocs_active(self):
         if self._ndocs_active is None:
