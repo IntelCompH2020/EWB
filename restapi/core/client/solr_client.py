@@ -1,34 +1,140 @@
+"""
+This  module provides classes to handle Solr API responses and requests.
+
+The SolrResults class is for wrapping decoded Solr responses, where individual documents can be retrieved either through the docs attribute or by iterating over the instance. 
+
+The SolrResp class is for handling Solr API response and errors. 
+
+The SolrClient class is for handling Solr API requests. 
+
+Author: Lorena Calvo-Bartolomé
+Date: 27/04/2023
+"""
+
 import os
 
 import requests
 
 from core.entities.corpus import Corpus
 from core.entities.model import Model
+from urllib import parse
+
 
 BATCH_SIZE = 100
 
 
-class SolrResp:
+class SolrResults(object):
+    """Class for wrapping decoded (from JSON) solr responses.
+
+    Individual documents can be retrieved either through ``docs`` attribute
+    or by iterating over results instance.
+    """
+
+    def __init__(self,
+                 json_response: dict,
+                 next_page_query: bool = None):
+        """Init method.
+
+        Parameters
+        ----------
+        json_response: dict
+            JSON response from Solr.
+        next_page_query: bool, defaults to None
+            If True, then the next page of results is fetched.
+        """
+        self.solr_json_response = json_response
+
+        # Main response part of decoded Solr response
+        response = json_response.get("response") or {}
+        self.docs = response.get("docs", ())
+        self.hits = response.get("numFound", 0)
+
+        # other response metadata
+        self.debug = json_response.get("debug", {})
+        self.highlighting = json_response.get("highlighting", {})
+        self.facets = json_response.get("facet_counts", {})
+        self.spellcheck = json_response.get("spellcheck", {})
+        self.stats = json_response.get("stats", {})
+        self.qtime = json_response.get("responseHeader", {}).get("QTime", None)
+        self.grouped = json_response.get("grouped", {})
+        self.nextCursorMark = json_response.get("nextCursorMark", None)
+        self._next_page_query = (
+            self.nextCursorMark is not None and next_page_query or None
+        )
+
+    def __len__(self):
+        """
+
+        """
+        if self._next_page_query:
+            return self.hits
+        else:
+            return len(self.docs)
+
+    def __iter__(self):
+        """
+
+        """
+        result = self
+        while result:
+            for d in result.docs:
+                yield d
+            result = result._next_page_query and result._next_page_query()
+
+
+class SolrResp(object):
     """
     A class to handle Solr API response and errors.
 
-    Attributes
-    ----------
-    status_code : int
-        The status code of the Solr API response.
-    data : list
-        A list of dictionaries that represents the data returned by the Solr API response.
-
-    Methods
-    -------
-    __init__(self, resp, logger):
-        Initializes SolrResp instance.
+    Examples
+    --------
+        # From delete collection
+        response = {
+                    "responseHeader":{
+                        "status":0,
+                        "QTime":1130}
+                    }
+        # From query
+        response = {
+                    "responseHeader":{
+                        "zkConnected":true,
+                        "status":0,
+                        "QTime":15,
+                        "params":{
+                        "q":"*:*",
+                        "indent":"true",
+                        "q.op":"OR",
+                        "useParams":"",
+                        "_":"1681211825934"
+                    }},
+                        "response":{
+                            "numFound":3,
+                            "start":0,
+                            "numFoundExact":true,
+                            'docs': [{'id': 1}, {'id': 2}, {'id': 3}]
+                      }}
     """
 
-    def __init__(self, status_code, text, data):
+    def __init__(self,
+                 status_code: int,
+                 text: str,
+                 data: list,
+                 results: SolrResults = None):
+        """Init method.
+
+        status_code: int
+            The status code of the Solr API response.
+        text: str
+            The text of the Solr API response.
+        data: list
+            A list of dictionaries that represents the data returned by the Solr API response (e.g., when list_collections is used)
+        results: SolrResults
+            A SolrResults object that represents the data returned by the Solr API response, only under the condition that "response" is in the JSON dict returned by Solr (e.g., when performing a query)
+        """
         self.status_code = status_code
         self.text = text
         self.data = data
+        self.results = results
 
     @staticmethod
     def from_error(status_code, text):
@@ -50,6 +156,8 @@ class SolrResp:
         status_code = 400
         data = []
         text = ""
+        results = {}
+
         # If response header has status 0, request is acknowledged
         if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
             logger.info('-- -- Request acknowledged')
@@ -60,11 +168,15 @@ class SolrResp:
             text = resp['error']['msg']
             logger.error(
                 f'-- -- Request generated an error {status_code}: {text}')
+
         # If collections are returned in response, set data attribute to collections list
         if 'collections' in resp:
             data = resp['collections']
 
-        return SolrResp(status_code, text, data)
+        if 'response' in resp:
+            results = SolrResults(resp, True)
+
+        return SolrResp(status_code, text, data, results)
 
 
 class SolrClient():
@@ -110,32 +222,59 @@ class SolrClient():
         logging.basicConfig(level='DEBUG')
         self.logger = logging.getLogger('Solr')
 
-    @staticmethod
-    def resp_msg(msg: str, resp: SolrResp):
-        """
-        Returns the data and status code of the Solr API response.
+    def _do_request(self,
+                    type: str,
+                    url: str,
+                    timeout: int = 10,
+                    **params) -> SolrResp:
+        """Sends a requests to the given url with the given params and returns an object of the SolrResp class
 
         Parameters
         ----------
-        msg : str
-            The message to log.
-        resp : SolrResp
-            The Solr API response object.
+        type: str
+            The type of request to send.
+        url: str
+            The url to send the request to.
+        timeout: int, defaults to 10
+            The timeout in seconds to use for the request.
 
         Returns
         -------
-        list
-            A list of dictionaries that represents the data returned by the Solr API response.
-        int
-            The status code of the Solr API response.
+        SolrResp : SolrResp
+            The response object.
         """
-        print('resp_msg: {} [Status: {}]'.format(msg, resp.status_code))
-        return resp.data, resp.status_code
+
+        # Send request
+        if type == "get":
+            resp = requests.get(
+                url=url,
+                timeout=timeout,
+                **params
+            )
+            pass
+        elif type == "post":
+            resp = requests.post(
+                url=url,
+                timeout=timeout,
+                **params
+            )
+        else:
+            self.logger.error(f"Invalid type {type}")
+            return
+
+        # Parse Solr request
+        solr_resp = SolrResp.from_requests_response(resp, self.logger)
+
+        return solr_resp
 
     # ======================================================
     # MANAGING (Creation, deletion, listing, etc.)
     # ======================================================
-    def add_vector_field_to_schema(self, col_name: str, field_name: str):
+    def add_vector_field_to_schema(self,
+                                   col_name: str,
+                                   field_name: str):
+        """Adds a field of type 'VectorField' to the schema of the collection given by 'col_name'. 
+        """
 
         headers_ = {"Content-Type": "application/json"}
         data = {
@@ -150,18 +289,20 @@ class SolrClient():
                 "multiValued": "true"
             }
         }
+        url_ = '{}/api/collections/{}/schema?'.format(self.solr_url, col_name)
 
-        resp = requests.post(
-            url='{}/api/collections/{}/schema?'.format(self.solr_url, col_name), headers=headers_, json=data, timeout=10)
+        # Send request to Solr
+        solr_resp = self._do_request(type="post", url=url_,
+                                     headers=headers_, json=data)
 
-        _, sc = self.resp_msg(
-            "Modified schema {}".format(col_name), SolrResp.from_requests_response(resp, self.logger))
+        return [{'name': col_name}], solr_resp.status_code
 
-        return [{'name': col_name}], sc
-
-    def create_collection(self, col_name: str, config: str = 'ewb_config', nshards: int = 1, replicationFactor: int = 1):
-        """
-        Creates a Solr collection with the given name, config, number of shards, and replication factor.
+    def create_collection(self,
+                          col_name: str,
+                          config: str = 'ewb_config',
+                          nshards: int = 1,
+                          replicationFactor: int = 1):
+        """Creates a Solr collection with the given name, config, number of shards, and replication factor.
         Returns a list with a dictionary containing the name of the created collection and the HTTP status code.
         """
 
@@ -169,10 +310,11 @@ class SolrClient():
         colls, _ = self.list_collections()
         colls_names = [d["name"] for d in colls]
         if col_name in colls_names:
-            _, sc = self.resp_msg(
-                "Collection {} already exists".format(col_name), SolrResp.from_error(409, "Collection {} already exists".format(col_name)))
-            return _, sc
+            solr_resp = SolrResp.from_error(
+                409, "Collection {} already exists".format(col_name))
+            return _, solr_resp.status_code
 
+        # Carry on with creation if collection does not exists
         headers_ = {"Content-Type": "application/json"}
         data = {
             "create": {
@@ -182,13 +324,13 @@ class SolrClient():
                 "replicationFactor": replicationFactor
             }
         }
-        resp = requests.post(
-            url='{}/api/collections?'.format(self.solr_url), headers=headers_, json=data, timeout=10)
+        url_ = '{}/api/collections?'.format(self.solr_url)
 
-        _, sc = self.resp_msg(
-            "Created collection {}".format(col_name), SolrResp.from_requests_response(resp, self.logger))
+        # Send request to Solr
+        solr_resp = self._do_request(type="post", url=url_,
+                                     headers=headers_, json=data)
 
-        return [{'name': col_name}], sc
+        return [{'name': col_name}], solr_resp.status_code
 
     def delete_collection(self, col_name: str):
         """
@@ -196,13 +338,13 @@ class SolrClient():
         Returns a list with a dictionary containing the name of the deleted collection and the HTTP status code.
         """
 
-        resp = requests.get(
-            url='{}/api/collections?action=DELETE&name={}'.format(self.solr_url, col_name), timeout=10)
+        url_ = '{}/api/collections?action=DELETE&name={}'.format(
+            self.solr_url, col_name)
 
-        _, sc = self.resp_msg(
-            "Collection {} deleted succesfully".format(col_name), SolrResp.from_requests_response(resp, self.logger))
+        # Send request to Solr
+        solr_resp = self._do_request(type="get", url=url_)
 
-        return [{'name': col_name}], sc
+        return [{'name': col_name}], solr_resp.status_code
 
     def list_collections(self):
         """
@@ -211,15 +353,15 @@ class SolrClient():
         and the HTTP status code.
         """
 
-        resp = requests.get(
-            url='{}/api/collections'.format(self.solr_url), timeout=10)
+        url_ = '{}/api/collections'.format(self.solr_url)
 
-        colls, sc = self.resp_msg(
-            "Collection listing carried out succesfully", SolrResp.from_requests_response(resp, self.logger))
+        # Send request to Solr
+        solr_resp = self._do_request(type="get", url=url_)
 
-        collections_dicts = [{"name": coll} for coll in colls]
+        # Get collections in the format required my the Collection namespace
+        collections_dicts = [{"name": coll} for coll in solr_resp.data]
 
-        return collections_dicts, sc
+        return collections_dicts, solr_resp.status_code
 
     def index_batch(self, docs_batch: list[dict], col_name: str, to_index: int, index_from: int, index_to: int):
         """Takes a batch of documents, a Solr collection name, and the indices of the batch to be indexed, and sends a POST request to the Solr server to index the documents. The method returns the status code of the response.
@@ -251,13 +393,18 @@ class SolrClient():
             'wt': 'json'
         }
 
-        resp = requests.post(
-            url='{}/solr/{}/update'.format(self.solr_url, col_name), headers=headers_, json=docs_batch, timeout=10, params=params, proxies={})
+        url_ = '{}/solr/{}/update'.format(self.solr_url, col_name)
 
-        _, sc = self.resp_msg(
-            "Indexed documents from {} to {} / {} in Collection '{}'".format(index_from, index_to, to_index, col_name), SolrResp.from_requests_response(resp, self.logger))
+        # Send request to Solr
+        solr_resp = self._do_request(
+            type="post", url=url_, headers=headers_, json=docs_batch,
+            params=params, proxies={})
 
-        return sc
+        if solr_resp.status_code == 200:
+            self.logger.info(
+                f"Indexed documents from {index_from} to {index_to} / {to_index} in Collection '{col_name}'")
+
+        return solr_resp.status_code
 
     # ======================================================
     # INDEXING
@@ -336,7 +483,8 @@ class SolrClient():
         return
 
     def index_model(self, model_name: str):
-        """It takes the name of a model file, reads the file, extracts the model information, and sends a POST request to the Solr server to index the information in two different collections. The first collection will contain the model information in a document format, and the second collection will contain the model information as a topic.
+        """
+        Given the name of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), it extracts the model information and that of the corpus used for its generation. It then adds a new field in the corpus collection of type 'VectorField' and name 'doctpc_{model_name}, and index the document-topic proportions in it. At last, it index the rest of the model information in the model collection.
 
         Parameters
         ----------
@@ -373,25 +521,46 @@ class SolrClient():
             f"Indexing model information in {corpus_col_name} collection")
         self.index_documents(json_docs, corpus_col_name)
 
-        self.logger.info("Indexing model info in model")
+        self.logger.info(
+            f"Indexing model information in {model_name} collection")
         json_tpcs = model.get_model_info()
         self.index_documents(json_tpcs, model_name)
 
     # ======================================================
     # QUERIES
     # ======================================================
-    def execute_query(self, index: str, query):
-        url = '{}/{}/select?'.format(self.solr_base_ep, index)
+    def execute_query(self, q: str, col_name: str, **kwargs):
+        """ 
+        Performs a query and returns the results.
 
-        resp = requests.post(url, data=query)
-        # resp_msg(msg='Query {}...'.format(str(query)[:20]), resp=resp)
-        resp = resp.json()
+        Requires a ``q`` for a string version of the query to run. Optionally accepts ``**kwargs``for additional options to be passed through the Solr URL.
 
-        # Transform to be consistent
-        for doc in resp['response']['docs']:
-            if 'score' in doc:
-                doc['_score'] = doc['score']
+        Parameters
+        ----------
+        q:
+        col_name:
 
-        return resp['response']['docs']
 
-    # VER CÓMO decir el field type al meter en la colección!!
+        Usage
+        -----
+            # All docs
+            results = solr.search('*:*')
+        """
+
+        # Prepare query
+        params = {"q": q}
+        params.update(kwargs)
+
+        # We want the result of the query as json
+        params["wt"] = "json"
+
+        # Encode query
+        query_string = parse.urlencode(params)
+
+        url_ = '{}/solr/{}/select?{}'.format(self.solr_url,
+                                             col_name, query_string)
+
+       # Send query to Solr
+        solr_resp = self._do_request(type="get", url=url_)
+
+        return solr_resp.status_code, solr_resp.results

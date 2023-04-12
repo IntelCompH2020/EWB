@@ -68,3 +68,10 @@ class ListCollections(Resource):
     @api.marshal_with(coll, code=200)
     def get(self):
         return sc.list_collections()
+
+
+@api.route('/query/')
+class Query(Resource):
+    def post(self):
+        code, results = sc.execute_query(q='*:*', col_name="Cordis")
+        return code
