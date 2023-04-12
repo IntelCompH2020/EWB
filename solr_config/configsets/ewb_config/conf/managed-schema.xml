@@ -111,12 +111,19 @@
     -->
 
     <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
+    <field name="models" type="string" indexed="true" stored="true" multiValued="true" />
     <!-- docValues are enabled by default for long type so we don't need to index the version field  -->
     <field name="_version_" type="plong" indexed="false" stored="false"/>
 
     <!-- Added fields  -->
-    <field name="raw_text" type="string" indexed="true" stored="true"  multiValued="true"/>
-    <!-- <field name="top_dstr" type="text_tfdl" indexed="true" stored="true"  multiValued="true"/> -->
+    <field name="raw_text" type="string" indexed="true" stored="true"  multiValued="false"/>
+    <field name="title" type="string" indexed="true" stored="true"  multiValued="false"/>
+    <field name="objective" type="string" indexed="true" stored="true"  multiValued="false"/>
+    <field name="lemmas" type="string" indexed="true" stored="true"  multiValued="false"/>
+    <field name="all_lemmas" type="string" indexed="true" stored="true"  multiValued="false"/>
+    <field name="ecMaxContribution" type="pfloat" indexed="true" stored="true"  multiValued="false"/>
+    <field name="euroSciVocCode" type="pint" indexed="true" stored="true"  multiValued="true"/>
+    <field name="startDate" type="pdate" indexed="true" stored="true"  multiValued="false"/>
 
     <field name="_text_" type="text_general" indexed="true" stored="false" multiValued="true"/>
 
