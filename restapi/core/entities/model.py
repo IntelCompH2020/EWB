@@ -50,6 +50,9 @@ class Model(object):
                 '-- -- The provided model path does not exist.')
         self.path_to_model = pathlib.Path(path_to_model)
 
+        self.name = path_to_model.split("/")[-1]
+        self.corpus_name = None
+
     @staticmethod
     def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
         """It takes in a vector and a max_sum value and returns a NumPy array with the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
@@ -66,8 +69,6 @@ class Model(object):
         x: 
             A NumPy array of the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
         """
-        # TODO: Get types
-        print(type(vector))
         x = np.array(list(map(np.int_, vector*max_sum))).ravel()
         pos_idx = list(np.where(x != 0)[0])
         while np.sum(x) != max_sum:
@@ -84,14 +85,12 @@ class Model(object):
             A list of dictionaries containing information about the topic model.
         """
 
-        path_to_model = self.path_to_model
-
         # read tr config
-        tr_config = path_to_model.joinpath("trainconfig.json")
+        tr_config = self.path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
 
-        tmmodel = TMmodel(path_to_model.joinpath("TMmodel"))
+        tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
         df, vocab_id2w = tmmodel.to_dataframe()
         df = df.apply(pd.Series.explode)
         df.reset_index(drop=True)
@@ -127,15 +126,15 @@ class Model(object):
             A list of dictionaries with thr document-topic proportions update.
         """
 
+        # TODO: Modify to include action (set /delete)
         path_to_model = self.path_to_model
-        model_name = path_to_model.as_posix().split("/")[-1]
 
         # Read tr configuration
         tr_config = path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
 
-        collection_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
+        self.corpus_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
 
         thetas = sparse.load_npz(
             path_to_model.joinpath('TMmodel/thetas.npz'))
@@ -147,6 +146,7 @@ class Model(object):
                 path_to_model.joinpath("corpus.txt"), encoding="utf-8").readlines()]
         elif tr_config["trainer"] == "prodlda" or tr_config["trainer"] == "ctm":
             print("TODO")
+            # TODO: Implement for neural models
 
         # Get doc-topic representation
         def get_doc_str_rpr(vector, max_sum):
@@ -160,7 +160,7 @@ class Model(object):
         doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
                        for row in range(len(thetas_dense))]
 
-        model_key = 'doctpc_' + model_name
+        model_key = 'doctpc_' + self.name
         df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr)),
                           columns=['id', model_key])
 
@@ -170,17 +170,42 @@ class Model(object):
         new_list = []
         for d in json_lst:
             tpc_dict = {'set': d[model_key]}
-            models_dict = {'add': model_name}
+            #models_dict = {'add': self.name}
             d[model_key] = tpc_dict
-            d['models'] = models_dict
+            #d['models'] = models_dict
             new_list.append(d)
 
-        return new_list, collection_name
+        return new_list, self.corpus_name
+
+    def get_corpora_model_update(self, id:int, action:str) -> list[dict]:
+        """Generates an update for the CORPUS_COL collection.
+
+        Parameters
+        ----------
+        id: int
+            Identifier of the corpus collection in CORPUS_COL
+        action: str
+            Action to be performed ('add', 'delete')
+            
+        Returns:
+        --------
+        json_lst: list[dict]
+            A list of dictionaries with the update.
+        """        
+    
+        json_lst = [{"id": id,
+                    "fields": {action: 'doctpc_' + self.name},
+                    "models": {action: self.name}
+                    }]
+
+        return json_lst
 
 
-# if __name__ == '__main__':
-#     model = Model("/Users/lbartolome/Documents/GitHub/EWB/data/Mallet-25")
-#     #json_lst = model.get_model_info_update()
-#     #print(json_lst[0])
-#     df = model.get_model_info()
-#     print(df[0].keys())
+""" if __name__ == '__main__':
+    model = Model("/Users/lbartolome/Documents/GitHub/EWB/data/Mallet-25")
+    #json_lst = model.get_model_info_update()
+    #print(json_lst[0])
+    df = model.get_model_info()
+    print(df[0].keys())
+    upt = model.get_corpora_model_update()
+    print(upt) """

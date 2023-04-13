@@ -41,6 +41,9 @@ class Corpus(object):
         with pathlib.Path(path_to_logical).open('r', encoding='utf8') as fin:
             self._logical_corpus = json.load(fin)
 
+        self.name = path_to_logical.split("/")[-1].split(".")[0]
+        self.fields = None
+
     def get_docs_raw_info(self) -> list[dict]:
         """Extracts the information contained in the parquet file associated to the logical corpus and transforms into a list of dictionaries.
 
@@ -72,6 +75,9 @@ class Corpus(object):
         with ProgressBar():
             ddf = df.compute(scheduler='processes')
 
+        # Save corpus fields
+        self.fields = ddf.columns.tolist()
+
         # Convert dates information to the format required by Solr ( ISO_INSTANT, The ISO instant formatter that formats or parses an instant in UTC, such as '2011-12-03T10:15:30Z')
         ddf, cols = convert_datetime_to_strftime(ddf)
         ddf[cols] = ddf[cols].applymap(parseTimeINSTANT)
@@ -80,6 +86,18 @@ class Corpus(object):
         json_lst = json.loads(json_str)
 
         return json_lst
+
+    def get_corpora_update(self, id) -> list[dict]:
+        
+        fields_dict = [{"id": id,
+                        "corpus_name": self.name,
+                        "fields": self.fields}]
+            
+        return fields_dict
+    
+    def calculate_sim_pairs(self):
+        # TODO: Pairs of documents with very high semantic similarity. 
+        pass
 
 
 # if __name__ == '__main__':

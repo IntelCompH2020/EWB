@@ -42,3 +42,6 @@ class IndexCorpus(Resource):
         corpus_name = args['corpus_name']
         sc.index_corpus(corpus_name)
         return '', 200
+
+
+# TODO: Think how to reestructure namespaces

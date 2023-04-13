@@ -22,8 +22,7 @@ from urllib import parse
 
 
 BATCH_SIZE = 100
-CORPUS_COL_PREFIX = "Corpus_"
-MODEL_COL_PREFIX = "Model_"
+CORPUS_COL = "Corpora"
 
 
 class SolrResults(object):
@@ -458,26 +457,59 @@ class SolrClient(object):
         """
 
         corpus_to_index = "/data/source/" + corpus_logical_name + ".json"
-        corpus_col = CORPUS_COL_PREFIX + corpus_logical_name
 
         # 1. Create collection
-        corpus, err = self.create_collection(col_name=corpus_col)
+        corpus, err = self.create_collection(col_name=corpus_logical_name)
         if err == 409:
             self.logger.info(
-                f"Collection {corpus_col} already exists.")
+                f"Collection {corpus_logical_name} already exists.")
             return
         else:
             self.logger.info(
-                f"Collection {corpus_col} successfully created.")
+                f"Collection {corpus_logical_name} successfully created.")
 
-        # 2. Index documents
+        # 2. Add corpus collection to CORPUS_COL. If Corpora has not been created already, create it
+        corpus, err = self.create_collection(col_name=CORPUS_COL)
+        if err == 409:
+            self.logger.info(
+                f"Collection {CORPUS_COL} already exists.")
+            # 2.1. Do query to retrieve last id in CORPUS_COL
+            # http://localhost:8983/solr/#/{CORPUS_COL}/query?q=*:*&q.op=OR&indent=true&sort=id desc&fl=id&rows=1&useParams=
+
+            sc, results = self.execute_query(q='*:*',
+                                             sort="id desc",
+                                             rows="1",
+                                             fl="id")
+            self.logger.info(results.docs)
+            corpus_id = results.docs["id"]
+            self.logger.info(corpus_id)
+
+            # Increment corpus_id for next corpus to be indexed
+            corpus_id += 1
+
+        else:
+            self.logger.info(
+                f"Collection {CORPUS_COL} successfully created.")
+            corpus_id = 1
+
+        # 3. Create Corpus object and extract info from the corpus to index
         corpus = Corpus(corpus_to_index)
         json_docs = corpus.get_docs_raw_info()
+        corpus_col_upt = corpus.get_corpora_update(id=corpus_id)
+
+        # 4. Index corpus and its fiels in CORPUS_COL
         self.logger.info(
-            f"Indexing of {corpus_logical_name} in {corpus_col} starts.")
-        self.index_documents(json_docs, corpus_col)
+            f"Indexing of {corpus_logical_name} info in {CORPUS_COL} starts.")
+        self.index_documents(corpus_col_upt, CORPUS_COL)
         self.logger.info(
-            f"Indexing of {corpus_logical_name} in {corpus_col} completed.")
+            f"Indexing of {corpus_logical_name} info in {CORPUS_COL} completed.")
+
+        # 5. Index documents in corpus collection
+        self.logger.info(
+            f"Indexing of {corpus_logical_name} in {corpus_logical_name} starts.")
+        self.index_documents(json_docs, corpus_logical_name)
+        self.logger.info(
+            f"Indexing of {corpus_logical_name} in {corpus_logical_name} completed.")
 
         return
 
@@ -492,40 +524,76 @@ class SolrClient(object):
         """
 
         model_to_index = "/data/source/" + model_name
-        model_col = MODEL_COL_PREFIX + model_name
 
         # 1. Create collection
-        corpus, err = self.create_collection(col_name=model_col)
+        corpus, err = self.create_collection(col_name=model_name)
         if err == 409:
             self.logger.info(
-                f"Collection {model_col} already exists.")
+                f"Collection {model_name} already exists.")
             return
         else:
             self.logger.info(
-                f"Collection {model_col} successfully created.")
+                f"Collection {model_name} successfully created.")
 
+        # 2. Create Model object and extract info from the corpus to index
         model = Model(model_to_index)
         json_docs, corpus_name = model.get_model_info_update()
-        corpus_col_name = CORPUS_COL_PREFIX + corpus_name
+        field_update = model.get_corpora_model_update()
 
-        # 2. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
+        # 3. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
+        self.logger.info(
+            f"Indexing model inforamtion of {model_name} in {CORPUS_COL} starts.")
+        self.index_documents(field_update, CORPUS_COL)
+        self.logger.info(
+            f"Indexing of model inforamtion of {model_name} info in {CORPUS_COL} completed.")
+
+        # 4. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
         model_key = 'doctpc_' + model_name
         self.logger.info(
-            f"Adding field {model_key} in {corpus_col_name} collection")
+            f"Adding field {model_key} in {corpus_name} collection")
         corpus, err = self.add_vector_field_to_schema(
-            corpus_col_name, model_key)
+            corpus_name, model_key)
         self.logger.info(corpus)
         self.logger.info(err)
 
-        # 3. Index doc-tpc information in corpus collection
+        # 5. Index doc-tpc information in corpus collection
         self.logger.info(
-            f"Indexing model information in {corpus_col_name} collection")
-        self.index_documents(json_docs, corpus_col_name)
+            f"Indexing model information in {corpus_name} collection")
+        self.index_documents(json_docs, corpus_name)
 
         self.logger.info(
-            f"Indexing model information in {model_col} collection")
+            f"Indexing model information in {model_name} collection")
         json_tpcs = model.get_model_info()
-        self.index_documents(json_tpcs, model_col)
+        self.index_documents(json_tpcs, model_name)
+
+    def delete_corpus(self, corpus_logical_name: str):
+        # TODO: Implement me
+        # 1. Delete corpus collection
+        _, sc = self.delete_collection(col_name=corpus_logical_name)
+
+        # 2. Get ID and associated models of corpus collection in CORPUS_COL
+        sc, results = self.execute_query(q='corpus_name:{corpus_logical_name}',
+                                         fl="id,models")
+        self.logger.info(results.docs)
+
+        # 3. Delete all models associated with the corpus
+        for model in results.docs["models"]:
+            pass
+
+        # 4. Remove corpus from CORPUS_COL
+        # Generate update with { "delete":"myid" }
+
+        return
+
+    def delete_model(self):
+
+        # 1. Delete model collection
+
+        # 2. Generate update with get_corpora_model_update & delete to delete tpc-distric field in field and model from models in corpus collection within CORPUS_COL
+
+        # 3. Generate update with get_model_info_update & delete (add the field to action:str to be customizable btwn set and delete) to remove model infromation from corpus collection
+
+        return
 
     # ======================================================
     # QUERIES
@@ -565,3 +633,11 @@ class SolrClient(object):
         solr_resp = self._do_request(type="get", url=url_)
 
         return solr_resp.status_code, solr_resp.results
+    
+
+class EWBSolrClient(SolrClient):
+    
+    def __init__(self, logger: logging.Logger):
+        super().__init__(logger)
+        
+        # TODO: Implement here only the methods that are directly related with the EWB and leave the others in the generic class

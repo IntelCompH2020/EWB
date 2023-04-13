@@ -59,6 +59,10 @@
     <int name="connTimeout">${connTimeout:60000}</int>
   </shardHandlerFactory>
 
+  <requestHandler name="/mlt" class="solr.MoreLikeThisHandler">
+    <str name="mlt.fl">rawtext</str>
+  </requestHandler>
+
   <metrics enabled="${metricsEnabled:true}">
     <!--reporter name="jmx_metrics" group="core" class="org.apache.solr.metrics.reporters.SolrJmxReporter"/-->
   </metrics>

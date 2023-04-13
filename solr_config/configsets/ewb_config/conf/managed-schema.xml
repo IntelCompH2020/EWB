@@ -116,11 +116,12 @@
   <field name="_version_" type="plong" indexed="false" stored="false" />
 
   <!-- Added fields  -->
-  <field name="rawtext" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="title" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="objective" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="lemmas" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="all_lemmas" type="string" indexed="true" stored="true" multiValued="false" />
+  <field name="corpus_name" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="rawtext" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="title" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="objective" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="lemmas" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="all_lemmas" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="ecMaxContribution" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="euroSciVocCode" type="pint" indexed="true" stored="true" multiValued="true" />
   <field name="startDate" type="pdate" indexed="true" stored="true" multiValued="false" />
