@@ -6,7 +6,7 @@ Date: 27/03/2023
 """
 
 from flask_restx import Namespace, Resource, fields, reqparse
-from core.client.solr_client import SolrClient
+from core.client.ewb_solr_client import EWBSolrClient
 
 
 # ======================================================
@@ -27,7 +27,7 @@ coll = api.model('Collection', {
 # Namespace variables
 # ======================================================
 # Create Solr client
-sc = SolrClient(api.logger)
+sc = EWBSolrClient(api.logger)
 
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
@@ -71,6 +71,7 @@ class ListCollections(Resource):
 
 
 @api.route('/query/')
+# @TODO: Make it accept input params
 class Query(Resource):
     def post(self):
         code, results = sc.execute_query(q='*:*', col_name="Cordis")

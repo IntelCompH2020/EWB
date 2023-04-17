@@ -48,9 +48,9 @@ class Model(object):
         if not os.path.isdir(path_to_model):
             self._logger.error(
                 '-- -- The provided model path does not exist.')
-        self.path_to_model = pathlib.Path(path_to_model)
+        self.path_to_model = path_to_model
 
-        self.name = path_to_model.split("/")[-1]
+        self.name = path_to_model.stem
         self.corpus_name = None
 
     @staticmethod
@@ -170,16 +170,15 @@ class Model(object):
         new_list = []
         for d in json_lst:
             tpc_dict = {'set': d[model_key]}
-            #models_dict = {'add': self.name}
+            # models_dict = {'add': self.name}
             d[model_key] = tpc_dict
-            #d['models'] = models_dict
+            # d['models'] = models_dict
             new_list.append(d)
 
         return new_list, self.corpus_name
 
     def get_corpora_model_update(self, id:int, action:str) -> list[dict]:
         """Generates an update for the CORPUS_COL collection.
-
         Parameters
         ----------
         id: int

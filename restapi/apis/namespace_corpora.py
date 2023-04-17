@@ -5,7 +5,7 @@ Author: Lorena Calvo-Bartolomé
 Date: 27/03/2023
 """
 from flask_restx import Namespace, Resource, fields, reqparse
-from core.client.solr_client import SolrClient
+from core.client.ewb_solr_client import EWBSolrClient
 
 # ======================================================
 # Define namespace for managing corpora
@@ -26,7 +26,7 @@ api = Namespace('Corpora', description='Corpora related operations')
 # Namespace variables
 # ======================================================
 # Create Solr client
-sc = SolrClient(api.logger)
+sc = EWBSolrClient(api.logger)
 
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
@@ -42,6 +42,17 @@ class IndexCorpus(Resource):
         corpus_name = args['corpus_name']
         sc.index_corpus(corpus_name)
         return '', 200
+    
+
+@api.route('/deleteCorpus/')
+class DeleteCorpus(Resource):
+    @api.doc(parser=parser)
+    def post(self):
+        args = parser.parse_args()
+        corpus_name = args['corpus_name']
+        sc.delete_corpus(corpus_name)
+        return '', 200
+
 
 
 # TODO: Think how to reestructure namespaces

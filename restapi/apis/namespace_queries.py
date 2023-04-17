@@ -6,7 +6,7 @@ Date: 13/04/2023
 """
 
 from flask_restx import Namespace, Resource, reqparse
-from core.client.solr_client import SolrClient
+from core.client.ewb_solr_client import EWBSolrClient
 
 # ======================================================
 # Define namespace for managing queries
@@ -17,7 +17,7 @@ api = Namespace('Queries', description='Solr queries')
 # Namespace variables
 # ======================================================
 # Create Solr client
-sc = SolrClient(api.logger)
+sc = EWBSolrClient(api.logger)
 
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
@@ -34,3 +34,5 @@ class Q1(Resource):
         model_name = args['model_name']
         sc.index_model(model_name)
         return '', 200
+    
+# @TODO: Implement here the rest of the queries

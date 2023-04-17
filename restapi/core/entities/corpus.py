@@ -38,10 +38,10 @@ class Corpus(object):
             logging.basicConfig(level='INFO')
             self._logger = logging.getLogger('Entity Corpus')
 
-        with pathlib.Path(path_to_logical).open('r', encoding='utf8') as fin:
+        with path_to_logical.open('r', encoding='utf8') as fin:
             self._logical_corpus = json.load(fin)
 
-        self.name = path_to_logical.split("/")[-1].split(".")[0]
+        self.name = path_to_logical.stem
         self.fields = None
 
     def get_docs_raw_info(self) -> list[dict]:
@@ -87,16 +87,16 @@ class Corpus(object):
 
         return json_lst
 
-    def get_corpora_update(self, id) -> list[dict]:
-        
+    def get_corpora_update(self, id: int) -> list[dict]:
+
         fields_dict = [{"id": id,
                         "corpus_name": self.name,
                         "fields": self.fields}]
-            
+
         return fields_dict
-    
+
     def calculate_sim_pairs(self):
-        # TODO: Pairs of documents with very high semantic similarity. 
+        # TODO: Pairs of documents with very high semantic similarity.
         pass
 
 
