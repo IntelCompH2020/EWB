@@ -18,7 +18,7 @@ class EWBSolrClient(SolrClient):
 
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "core/client/config.cf"):
+                 config_file: str = "core/client/config/config.cf"):
         super().__init__(logger)
 
         # Read configuration from config file
@@ -136,10 +136,11 @@ class EWBSolrClient(SolrClient):
             if sc != 200:
                 self.logger.error(
                     f"-- -- Error deleting model collection {model}")
-            return
+                return
 
+        self.logger.info("this is the id")
+        self.logger.info(results.docs[0]["id"])
         # 5. Remove corpus from self.corpus_col
-        # @TODO: FIX THIS
         sc = self.delete_doc_by_id(
             col_name=self.corpus_col, id=results.docs[0]["id"])
         if sc != 200:
@@ -182,7 +183,7 @@ class EWBSolrClient(SolrClient):
                                          fl="id")
         if sc != 200:
             self.logger.error(
-                f"Corpus collection not found in {self.corpus_col}")
+                f"-- -- Corpus collection not found in {self.corpus_col}")
             return
         field_update = model.get_corpora_model_update(
             id=results.docs[0]["id"], action='add')

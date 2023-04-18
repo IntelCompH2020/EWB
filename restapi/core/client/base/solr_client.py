@@ -14,7 +14,7 @@ Date: 27/03/2023
 import logging
 import os
 from urllib import parse
-
+import xml.etree.ElementTree as ET
 import requests
 
 
@@ -148,30 +148,42 @@ class SolrResp(object):
             The logger object to log messages and errors.
         """
 
-        # Parse the response and set status code and data attributes accordingly
-        resp = resp.json()
         status_code = 400
         data = []
         text = ""
         results = {}
 
-        # If response header has status 0, request is acknowledged
-        if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
-            logger.info('-- -- Request acknowledged')
-            status_code = 200
-        else:
-            # If there is an error in response header, set status code and text attributes accordingly
-            status_code = resp['responseHeader']['status']
-            text = resp['error']['msg']
-            logger.error(
-                f'-- -- Request generated an error {status_code}: {text}')
+        # Parse the response and set status code and data attributes accordingly
+        try:
+            # Get JSON object of the result (if it was written in JSON)
+            resp = resp.json()
 
-        # If collections are returned in response, set data attribute to collections list
-        if 'collections' in resp:
-            data = resp['collections']
+            # If response header has status 0, request is acknowledged
+            if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
+                logger.info('-- -- Request acknowledged')
+                status_code = 200
+            else:
+                # If there is an error in response header, set status code and text attributes accordingly
+                status_code = resp['responseHeader']['status']
+                text = resp['error']['msg']
+                logger.error(
+                    f'-- -- Request generated an error {status_code}: {text}')
 
-        if 'response' in resp:
-            results = SolrResults(resp, True)
+            # If collections are returned in response, set data attribute to collections list
+            if 'collections' in resp:
+                data = resp['collections']
+
+            if 'response' in resp:
+                results = SolrResults(resp, True)
+        except:
+            tree = ET.fromstring(resp.text)
+            status = tree.find('.//int[@name="status"]')
+            if status.text == '0':
+                logger.info('-- -- Request acknowledged')
+                status_code = 200
+            else:
+                status_code = int(status.text)
+                text = tree.find('.//str[@name="msg"]').text
 
         return SolrResp(status_code, text, data, results)
 
@@ -236,7 +248,7 @@ class SolrClient(object):
                 **params
             )
         else:
-            self.logger.error(f"Invalid type {type}")
+            self.logger.error(f"-- -- Invalid type {type}")
             return
 
         # Parse Solr request
@@ -325,24 +337,23 @@ class SolrClient(object):
         return [{'name': col_name}], solr_resp.status_code
 
     def delete_doc_by_id(self, col_name: str, id: int):
-
-        # @TODO: Revise this method
+        """
+        Deletes the document with the given id in the Solr collection with the given name. 
+        """
 
         headers_ = {"Content-Type": "application/xml"}
-        # data_ = {
-        #     "delete": {
-        #         "query": "(id:" + id + ")"
-        #     }
-        # }
-
         data_ = "<delete><query>(id:" + id + ")</query></delete>"
-        self.logger.info(data_)
+        params_ = {
+            'commitWithin': '1000',
+            'overwrite': 'true',
+            'wt': 'json'
+        }
 
         url_ = '{}/solr/{}/update'.format(self.solr_url, col_name)
 
         # Send request to Solr
         solr_resp = self._do_request(type="post", url=url_,
-                                     headers=headers_, data=data_)
+                                     headers=headers_, data=data_, params=params_)
 
         return solr_resp.status_code
 
@@ -414,7 +425,7 @@ class SolrClient(object):
 
         if solr_resp.status_code == 200:
             self.logger.info(
-                f"Indexed documents from {index_from} to {index_to} / {to_index} in Collection '{col_name}'")
+                f"-- -- Indexed documents from {index_from} to {index_to} / {to_index} in Collection '{col_name}'")
 
         return solr_resp.status_code
 
@@ -457,7 +468,7 @@ class SolrClient(object):
         if docs_batch:
             self.index_batch(docs_batch, col_name, to_index,
                              index_from=index_from, index_to=index)
-        self.logger.info("Finished indexing")
+        self.logger.info("-- -- Finished indexing")
 
         return
 
