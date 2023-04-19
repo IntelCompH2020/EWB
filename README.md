@@ -8,7 +8,7 @@ The Docker Compose script sets up an environment for the EWB's RESTful API serve
 
 The script consists of four services:
 
-1. ``restapi (ewb-restapi)`` - This service is responsible for running the EWB's RESTful API server. It is built using the Dockerfile located in the ``restapi`` directory. It listens on port 80 and requires the SOLR_URL environment variable to be set to the URL of the Solr server. The service depends on the solr service and uses the ewb-net network. The service requires access to a volume mounted at the ``./data`` directory, which is mapped to the ``/data/source``directory inside the container. This volume is used to access any data needed from the ITMT (i.e., the project folder in which the topic models are saved).
+1. ``restapi (ewb-restapi)`` - This service is responsible for running the EWB's RESTful API server. It is built using the Dockerfile located in the ``restapi`` directory. It listens on port 80 and requires the SOLR_URL environment variable to be set to the URL of the Solr server. The service depends on the solr service and uses the ewb-net network. The service requires access to two volumes mounted at the ``./data/source`` and ``./data/results`` directories, which are mapped to the directories of the same name inside the container. This volumes are used to access any data needed from the ITMT (i.e., the project folder in which the topic models are saved) and to provide the results obtained through the EWB.
 
 2. ``solr (ewb-solr)`` - This service runs the Solr search engine. It uses the official solr image from Docker Hub and listens on port 8983. It also uses the ewb-net network and depends on the zoo service. The service mounts several volumes, including:
 

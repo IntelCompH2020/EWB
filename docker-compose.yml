@@ -17,7 +17,8 @@ services:
     networks:
       - ewb-net
     volumes:
-      - ./data:/data/source
+      - ./data/source:/data/source
+      - ./data/results:/data/results
 
   solr:
     image: solr:9.1.1

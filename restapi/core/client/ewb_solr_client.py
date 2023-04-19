@@ -5,13 +5,15 @@ Author: Lorena Calvo-Bartolomé
 Date: 17/04/2023
 """
 
+import configparser
+import json
 import logging
 import pathlib
-import configparser
-from core.entities.corpus import Corpus
-from core.entities.model import Model
 
 from core.client.base.solr_client import SolrClient
+from core.client.queries import Queries
+from core.entities.corpus import Corpus
+from core.entities.model import Model
 
 
 class EWBSolrClient(SolrClient):
@@ -26,6 +28,9 @@ class EWBSolrClient(SolrClient):
         cf.read(config_file)
         self.batch_size = int(cf.get('restapi', 'batch_size'))
         self.corpus_col = cf.get('restapi', 'corpus_col')
+
+        # Create Queries object for managing queries
+        self.querier = Queries()
 
     # ======================================================
     # CORPUS-RELATED OPERATIONS
@@ -67,8 +72,6 @@ class EWBSolrClient(SolrClient):
                                              sort="id desc",
                                              rows="1",
                                              fl="id")
-            self.logger.info(sc)
-            self.logger.info(type(sc))
             if sc != 200:
                 self.logger.error(
                     f"-- -- Error getting latest used ID. Aborting operation...")
@@ -100,6 +103,40 @@ class EWBSolrClient(SolrClient):
             f"-- -- Indexing of {corpus_logical_name} in {corpus_logical_name} completed.")
 
         return
+
+    def list_corpus_collections(self) -> list:
+        """Returns a list of the names of the corpus collections that have been created in the Solr server.
+        """
+
+        sc, results = self.execute_query(q='*:*',
+                                         col_name=self.corpus_col,
+                                         fl="corpus_name")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting corpus collections in {self.corpus_col}. Aborting operation...")
+            return
+
+        corpus_lst = [doc["corpus_name"] for doc in results.docs]
+
+        return corpus_lst
+
+    def get_corpus_coll_fields(self, corpus_col: str):
+        """Returns a list of the fields of the corpus collection given by 'corpus_col' that have been defined in the Solr server.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose fields are to be retrieved.
+        """
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                         col_name=self.corpus_col,
+                                         fl="fields")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting fields of {corpus_col}. Aborting operation...")
+            return
+
+        return results.docs[0]["fields"]
 
     def delete_corpus(self,
                       corpus_logical_path: str):
@@ -210,6 +247,21 @@ class EWBSolrClient(SolrClient):
         json_tpcs = model.get_model_info()
         self.index_documents(json_tpcs, model_name, self.batch_size)
 
+    def list_model_collections(self) -> list:
+        """Returns a list of the names of the model collections that have been created in the Solr server.
+        """
+        sc, results = self.execute_query(q='*:*',
+                                         col_name=self.corpus_col,
+                                         fl="models")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting corpus collections in {self.corpus_col}. Aborting operation...")
+            return
+
+        models_lst = [model for doc in results.docs for model in doc["models"]]
+
+        return models_lst
+
     def delete_model(self, model_path: str):
         """
         Given the string path of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), 
@@ -268,3 +320,57 @@ class EWBSolrClient(SolrClient):
             col_name=corpus_name, field_name=model_key)
 
         return
+
+    # ======================================================
+    # QUERIES
+    # ======================================================
+    def do_Q1(self, corpus_col: str, doc_id: str, model_name: str, results_file_path: str):
+        """Executes query Q1.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection.
+        id : str
+            ID of the document to be retrieved.
+        model_name : str
+            Name of the model to be used for the retrieval.
+        results_file_path : str
+            Path to the file where the results of the query will be stored
+        """
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Check that corpus_col has the model_name field
+        corpus_fields = self.get_corpus_coll_fields(corpus_col)
+        if 'doctpc_' + model_name not in corpus_fields:
+            self.logger.error(
+                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+            return
+
+        # 3. Execute query
+        q1 = self.querier.customize_Q1(id=doc_id, model_name=model_name)
+        params = {k: v for k, v in q1.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q1['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q1. Aborting operation...")
+            return
+
+        # 4. Save results to json file
+        # Serializing json
+        json_object = json.dumps(results.docs, indent=4)
+
+        # Save results to json file
+        with open(results_file_path, 'w', encoding='utf-8') as f:
+            f.write(json_object)
+
+        return sc

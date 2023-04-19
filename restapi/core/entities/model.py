@@ -172,14 +172,14 @@ class Model(object):
         json_lst = json.loads(json_str)
         
         new_list = []
-        if action == 'add':
+        if action == 'set':
             for d in json_lst:
-                tpc_dict = {'add': d[model_key]}
+                tpc_dict = {'set': d[model_key]}
                 d[model_key] = tpc_dict
                 new_list.append(d)
-        elif action == 'delete':
+        elif action == 'remove':
             for d in json_lst:
-                tpc_dict = {'add': []}
+                tpc_dict = {'set': []}
                 d[model_key] = tpc_dict
                 new_list.append(d)
 

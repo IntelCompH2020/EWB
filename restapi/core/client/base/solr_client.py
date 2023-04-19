@@ -14,7 +14,7 @@ Date: 27/03/2023
 import logging
 import os
 from urllib import parse
-import xml.etree.ElementTree as ET
+
 import requests
 
 
@@ -153,37 +153,29 @@ class SolrResp(object):
         text = ""
         results = {}
 
-        # Parse the response and set status code and data attributes accordingly
-        try:
-            # Get JSON object of the result (if it was written in JSON)
-            resp = resp.json()
+        # Get JSON object of the result
+        resp = resp.json()
+        
+        logger.info("This is the json response")
+        logger.info(resp)
 
-            # If response header has status 0, request is acknowledged
-            if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
-                logger.info('-- -- Request acknowledged')
-                status_code = 200
-            else:
-                # If there is an error in response header, set status code and text attributes accordingly
-                status_code = resp['responseHeader']['status']
-                text = resp['error']['msg']
-                logger.error(
-                    f'-- -- Request generated an error {status_code}: {text}')
+        # If response header has status 0, request is acknowledged
+        if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
+            logger.info('-- -- Request acknowledged')
+            status_code = 200
+        else:
+            # If there is an error in response header, set status code and text attributes accordingly
+            status_code = resp['responseHeader']['status']
+            text = resp['error']['msg']
+            logger.error(
+                f'-- -- Request generated an error {status_code}: {text}')
 
-            # If collections are returned in response, set data attribute to collections list
-            if 'collections' in resp:
-                data = resp['collections']
+        # If collections are returned in response, set data attribute to collections list
+        if 'collections' in resp:
+            data = resp['collections']
 
-            if 'response' in resp:
-                results = SolrResults(resp, True)
-        except:
-            tree = ET.fromstring(resp.text)
-            status = tree.find('.//int[@name="status"]')
-            if status.text == '0':
-                logger.info('-- -- Request acknowledged')
-                status_code = 200
-            else:
-                status_code = int(status.text)
-                text = tree.find('.//str[@name="msg"]').text
+        if 'response' in resp:
+            results = SolrResults(resp, True)
 
         return SolrResp(status_code, text, data, results)
 
@@ -510,7 +502,7 @@ class SolrClient(object):
         Usage
         -----
             # All docs
-            results = solr.search('*:*')
+            results = solr.execute_query('*:*')
         """
 
         # Prepare query
@@ -521,12 +513,16 @@ class SolrClient(object):
         params["wt"] = "json"
 
         # Encode query
+        self.logger.info(params)
         query_string = parse.urlencode(params)
+        self.logger.info(query_string)
 
         url_ = '{}/solr/{}/select?{}'.format(self.solr_url,
                                              col_name, query_string)
 
        # Send query to Solr
         solr_resp = self._do_request(type="get", url=url_)
-
+        
+        #self.logger.info(solr_resp.results.docs[0])
+        
         return solr_resp.status_code, solr_resp.results

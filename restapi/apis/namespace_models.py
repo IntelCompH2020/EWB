@@ -11,7 +11,7 @@ from core.client.ewb_solr_client import EWBSolrClient
 # ======================================================
 # Define namespace for managing models
 # ======================================================
-api = Namespace('Models', description='Models related operations')
+api = Namespace('Models', description='Models-related operations')
 
 # ======================================================
 # Collection metadata for doc and response marshalling

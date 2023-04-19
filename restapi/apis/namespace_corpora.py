@@ -10,7 +10,7 @@ from core.client.ewb_solr_client import EWBSolrClient
 # ======================================================
 # Define namespace for managing corpora
 # ======================================================
-api = Namespace('Corpora', description='Corpora related operations')
+api = Namespace('Corpora', description='Corpora-related operations')
 
 # ======================================================
 # Collection metadata for doc and response marshalling
