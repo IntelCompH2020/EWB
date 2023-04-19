@@ -1,9 +1,4 @@
-FROM ubuntu:18.04
+FROM alpine:3.14
 
-LABEL maintainer="Bibin Wilson <bibinwilsonn@gmail.com>"
-
-RUN apt-get update && \
-    apt-get -qy full-upgrade && \
-    apt-get install -qy curl && \
-    apt-get install -qy curl && \
-    curl -sSL https://get.docker.com/ | sh
+RUN apk update && \
+    apk add --no-cache docker

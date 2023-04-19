@@ -20,7 +20,7 @@ services:
       - ./data:/data/source
 
   solr:
-    image: solr:9.1.1 #se puede actualizar pero hay que modificar el comando del bash_script para el ewb-config
+    image: solr:9.1.1
     container_name: ewb-solr
     restart: always
     volumes:
@@ -68,6 +68,10 @@ services:
       - zoo
     networks:
       - ewb-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./solr_config/bash_scripts:/bash_scripts
     command: 
-      - docker exec -it ewb-solr bin/solr zk upconfig -zkhost zoo:2181 -n ewb_config -d /opt/solr-9.1.1/server/solr/configsets/ewb_config
-    
+      - sh
+      - -c
+      - 'chmod +x /bash_scripts/init_config.sh && bash_scripts/init_config.sh'

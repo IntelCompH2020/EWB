@@ -1,0 +1,1 @@
+docker exec ewb-solr bin/solr zk upconfig -zkhost zoo:2181 -n ewb_config -d /opt/solr-9.1.1/server/solr/configsets/ewb_config
