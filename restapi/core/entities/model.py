@@ -116,9 +116,14 @@ class Model(object):
 
         return json_lst
 
-    def get_model_info_update(self) -> list[dict]:
+    def get_model_info_update(self, action:str) -> list[dict]:
         """
         Retrieves the information from the model that goes to a corpus collection (document-topic proportions) and save it as an update in the format required by Solr.
+        
+        Parameters
+        ----------
+        action: str
+            Action to be performed ('set', 'remove')
 
         Returns:
         --------
@@ -126,7 +131,6 @@ class Model(object):
             A list of dictionaries with thr document-topic proportions update.
         """
 
-        # TODO: Modify to include action (set /delete)
         path_to_model = self.path_to_model
 
         # Read tr configuration
@@ -166,14 +170,18 @@ class Model(object):
 
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
-
+        
         new_list = []
-        for d in json_lst:
-            tpc_dict = {'set': d[model_key]}
-            # models_dict = {'add': self.name}
-            d[model_key] = tpc_dict
-            # d['models'] = models_dict
-            new_list.append(d)
+        if action == 'add':
+            for d in json_lst:
+                tpc_dict = {'add': d[model_key]}
+                d[model_key] = tpc_dict
+                new_list.append(d)
+        elif action == 'delete':
+            for d in json_lst:
+                tpc_dict = {'add': []}
+                d[model_key] = tpc_dict
+                new_list.append(d)
 
         return new_list, self.corpus_name
 
@@ -184,7 +192,7 @@ class Model(object):
         id: int
             Identifier of the corpus collection in CORPUS_COL
         action: str
-            Action to be performed ('add', 'delete')
+            Action to be performed ('add', 'remove')
             
         Returns:
         --------

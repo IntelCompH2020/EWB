@@ -31,7 +31,7 @@ sc = EWBSolrClient(api.logger)
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
 parser.add_argument(
-    'corpus_name', help='Specify the name of the corpus to index')
+    'corpus_path', help="Specify the path of the corpus to index / delete (i.e., path to the json file within the /datasets folder in the project folder describing a ITMT's logical corpus)")
 
 
 @api.route('/indexCorpus/')
@@ -39,20 +39,16 @@ class IndexCorpus(Resource):
     @api.doc(parser=parser)
     def post(self):
         args = parser.parse_args()
-        corpus_name = args['corpus_name']
-        sc.index_corpus(corpus_name)
+        corpus_path = args['corpus_path']
+        sc.index_corpus(corpus_path)
         return '', 200
-    
+
 
 @api.route('/deleteCorpus/')
 class DeleteCorpus(Resource):
     @api.doc(parser=parser)
     def post(self):
         args = parser.parse_args()
-        corpus_name = args['corpus_name']
-        sc.delete_corpus(corpus_name)
+        corpus_path = args['corpus_path']
+        sc.delete_corpus(corpus_path)
         return '', 200
-
-
-
-# TODO: Think how to reestructure namespaces

@@ -287,6 +287,26 @@ class SolrClient(object):
 
         return [{'name': col_name}], solr_resp.status_code
 
+    def delete_field_from_schema(self,
+                                 col_name: str,
+                                 field_name: str):
+        """Deletes a field of name 'field_name' from the schema of the collection given by 'col_name'. 
+        """
+
+        headers_ = {"Content-Type": "application/json"}
+        data = {
+            "delete-field": {
+                "name": field_name,
+            }
+        }
+        url_ = '{}/api/collections/{}/schema?'.format(self.solr_url, col_name)
+
+        # Send request to Solr
+        solr_resp = self._do_request(type="post", url=url_,
+                                     headers=headers_, json=data)
+
+        return [{'name': col_name}], solr_resp.status_code
+
     def create_collection(self,
                           col_name: str,
                           config: str = 'ewb_config',

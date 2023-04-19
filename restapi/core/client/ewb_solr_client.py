@@ -138,8 +138,6 @@ class EWBSolrClient(SolrClient):
                     f"-- -- Error deleting model collection {model}")
                 return
 
-        self.logger.info("this is the id")
-        self.logger.info(results.docs[0]["id"])
         # 5. Remove corpus from self.corpus_col
         sc = self.delete_doc_by_id(
             col_name=self.corpus_col, id=results.docs[0]["id"])
@@ -157,7 +155,7 @@ class EWBSolrClient(SolrClient):
 
         Parameters
         ----------
-        model_name : str
+        model_path : str
             Path to the folder of the model to be indexed.
         """
 
@@ -177,7 +175,7 @@ class EWBSolrClient(SolrClient):
 
         # 3. Create Model object and extract info from the corpus to index
         model = Model(model_to_index)
-        json_docs, corpus_name = model.get_model_info_update()
+        json_docs, corpus_name = model.get_model_info_update(action='set')
         sc, results = self.execute_query(q='corpus_name:'+corpus_name,
                                          col_name=self.corpus_col,
                                          fl="id")
@@ -190,10 +188,10 @@ class EWBSolrClient(SolrClient):
 
         # 4. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
         self.logger.info(
-            f"-- -- Indexing model inforamtion of {model_name} in {self.corpus_col} starts.")
+            f"-- -- Indexing model information of {model_name} in {self.corpus_col} starts.")
         self.index_documents(field_update, self.corpus_col, self.batch_size)
         self.logger.info(
-            f"-- -- Indexing of model inforamtion of {model_name} info in {self.corpus_col} completed.")
+            f"-- -- Indexing of model information of {model_name} info in {self.corpus_col} completed.")
 
         # 5. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
         model_key = 'doctpc_' + model_name
@@ -212,17 +210,61 @@ class EWBSolrClient(SolrClient):
         json_tpcs = model.get_model_info()
         self.index_documents(json_tpcs, model_name, self.batch_size)
 
-    def delete_model(self, model_name: str):
+    def delete_model(self, model_path: str):
+        """
+        Given the string path of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), 
+        it deletes the model collection associated with it. Additionally, it removes the document-topic proportions field in the corpus collection and removes the fields associated with the model and the model from the list of models in the corpus document from the self.corpus_col collection.
 
-        # 1. Create Model object
-        model_to_delete = "/data/source/" + model_name
-        model = Model(model_to_delete)
+        Parameters
+        ----------
+        model_path : str
+            Path to the folder of the model to be indexed.
+        """
+
+        # 1. Get stem of the model folder
+        model_to_index = pathlib.Path(model_path)
+        model_name = pathlib.Path(model_to_index).stem
 
         # 2. Delete model collection
         _, sc = self.delete_collection(col_name=model_name)
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error occurred while deleting model collection {model_name}. Stopping...")
+            return
+        else:
+            self.logger.info(
+                f"-- -- Model collection {model_name} successfully deleted.")
 
-        # 2. Generate update with get_corpora_model_update & delete to delete tpc-distric field in field and model from models in corpus collection within CORPUS_COL
+        # 3. Create Model object and extract info from the corpus associated with the model
+        model = Model(model_to_index)
+        json_docs, corpus_name = model.get_model_info_update(action='remove')
+        sc, results = self.execute_query(q='corpus_name:'+corpus_name,
+                                         col_name=self.corpus_col,
+                                         fl="id")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Corpus collection not found in {self.corpus_col}")
+            return
+        field_update = model.get_corpora_model_update(
+            id=results.docs[0]["id"], action='remove')
 
-        # 3. Generate update with get_model_info_update & delete (add the field to action:str to be customizable btwn set and delete) to remove model infromation from corpus collection
+        # 4. Remove field for the doc-tpc distribution associated with the model being deleted in the document associated with the corpus
+        self.logger.info(
+            f"-- -- Deleting model information of {model_name} in {self.corpus_col} starts.")
+        self.index_documents(field_update, self.corpus_col, self.batch_size)
+        self.logger.info(
+            f"-- -- Deleting model information of {model_name} info in {self.corpus_col} completed.")
+
+        # 5. Delete doc-tpc information from corpus collection
+        self.logger.info(
+            f"-- -- Deleting model information from {corpus_name} collection")
+        self.index_documents(json_docs, corpus_name, self.batch_size)
+
+        # 6. Modify schema in corpus collection to delete field for the doc-tpc distribution associated with the model being indexed
+        model_key = 'doctpc_' + model_name
+        self.logger.info(
+            f"-- -- Deleting field {model_key} in {corpus_name} collection")
+        _, err = self.delete_field_from_schema(
+            col_name=corpus_name, field_name=model_key)
 
         return

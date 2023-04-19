@@ -11,7 +11,7 @@ api = Api(
     description='A description',
 )
 
-api.add_namespace(ns1, path='/corpora')
 api.add_namespace(ns2, path='/collections')
+api.add_namespace(ns1, path='/corpora')
 api.add_namespace(ns3, path='/models')
 api.add_namespace(ns4, path='/queries')

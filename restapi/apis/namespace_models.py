@@ -32,7 +32,7 @@ sc = EWBSolrClient(api.logger)
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
 parser.add_argument(
-    'model_name', help='Specify the name of the model to index')
+    'model_path', help="Specify the path of the model to index / delete (i.e., path to the folder within the TMmodels folder in the project folder describing a ITMT's topic model)")
 
 
 @api.route('/indexModel/')
@@ -40,6 +40,16 @@ class IndexModel(Resource):
     @api.doc(parser=parser)
     def post(self):
         args = parser.parse_args()
-        model_name = args['model_name']
-        sc.index_model(model_name)
+        model_path = args['model_path']
+        sc.index_model(model_path)
+        return '', 200
+
+
+@api.route('/deleteModel/')
+class DeleteModel(Resource):
+    @api.doc(parser=parser)
+    def post(self):
+        args = parser.parse_args()
+        model_path = args['model_path']
+        sc.delete_model(model_path)
         return '', 200
