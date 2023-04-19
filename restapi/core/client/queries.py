@@ -15,22 +15,45 @@ class Queries(object):
         # # Q1 ###########################################################
         # # Get document-topic distribution of a selected document in a
         # # corpus collection
+        # http://localhost:8983/solr/{col}/select?fl=doctpc_{model}&q=id:{id}
         # ================================================================
         self.Q1 = {
             'q': 'id:{}',
             'fl': 'doctpc_{}',
         }
 
-        # Get documents that have a proportion of a certain topic larger than a threshold
+        # ================================================================
+        # # Q2 ###########################################################
+        # # Get number of documents in a collection
+        # http://localhost:8983/solr/{col}/select?q=*:*&wt=json&rows=0
+        # ================================================================
         self.Q2 = {
-
+            'q': '*:*',
+            'rows': '0',
         }
 
-        # Retrieve documents that have a high semantic relationship with a selected document
+        # ================================================================
+        # # Q3 ###########################################################
+        # # Get documents that have a proportion of a certain topic larger
+        # # than a threshold
+        # q={!payload_check f=doctpc_{topic} payloads="{threshold}" op="gte"}t{topic}
+        # ================================================================
+        self.Q3 = {
+            'q': '{!payload_check f=doctpc_{} payloads="{}" op="gte"}t{}',
+            'rows': '{}'
+        }
+
+        # ================================================================
+        # # Q4 ###########################################################
+        # # Retrieve documents that have a high semantic relationship with
+        # # a selected document
+        # ---------------------------------------------------------------
         # Previous steps:
+        # ---------------------------------------------------------------
         # 1. Get thetas of selected documents
         # 2. Parse thetas in Q1
-        self.Q3 = {
+        # ================================================================
+        self.Q4 = {
 
         }
 
@@ -41,3 +64,15 @@ class Queries(object):
             'fl': self.Q1['fl'].format(model_name),
         }
         return custom_q1
+
+    def customize_Q2(self) -> dict:
+
+        return self.Q2
+
+    def customize_Q3(self, topic: int, threshold: float, rows: int) -> dict:
+
+        custom_q3 = {
+            'q': self.Q3['q'].format('doctpc_{}'.format(topic), threshold, topic),
+            'rows': self.Q3['rows'].format(rows),
+        }
+        return custom_q3

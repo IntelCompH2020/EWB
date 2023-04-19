@@ -324,7 +324,7 @@ class EWBSolrClient(SolrClient):
     # ======================================================
     # QUERIES
     # ======================================================
-    def do_Q1(self, corpus_col: str, doc_id: str, model_name: str, results_file_path: str):
+    def do_Q1(self, corpus_col: str, doc_id: str, model_name: str, results_file_path: str) -> int:
         """Executes query Q1.
 
         Parameters
@@ -337,6 +337,11 @@ class EWBSolrClient(SolrClient):
             Name of the model to be used for the retrieval.
         results_file_path : str
             Path to the file where the results of the query will be stored
+
+        Returns
+        -------
+        sc : int
+            The status code of the response.  
         """
 
         # 1. Check that corpus_col is indeed a corpus collection
@@ -374,3 +379,81 @@ class EWBSolrClient(SolrClient):
             f.write(json_object)
 
         return sc
+
+    def do_Q2(self, col: str) -> int:
+        """Executes query Q2.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection.
+
+        Returns
+        -------
+        sc : int
+            The status code of the response.  
+        nr_docs : int
+            Number of documents in the collection.
+        """
+
+        # 1. Execute query
+        q2 = self.querier.customize_Q2()
+        params = {k: v for k, v in q2.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q2['q'], col_name=col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q2. Aborting operation...")
+            return
+
+        # TODO: Extract "numFound" from results
+        """{
+        "responseHeader":{
+            "zkConnected":true,
+            "status":0,
+            "QTime":8,
+            "params":{
+            "q":"*:*",
+            "indent":"true",
+            "q.op":"OR",
+            "rows":"0",
+            "useParams":"",
+            "_":"1681939276369"}},
+        "response":{"numFound":63485,"start":0,"numFoundExact":true,"docs":[]
+        }}"""
+        return
+
+    def do_Q3(self, corpus_col: str, model_name: str, results_file_path: str) -> int:
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Check that corpus_col has the model_name field
+        corpus_fields = self.get_corpus_coll_fields(corpus_col)
+        if 'doctpc_' + model_name not in corpus_fields:
+            self.logger.error(
+                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+            return
+        
+        # 3. Execute query Q2 to extract ndocs
+        # @TODO
+        
+        # 4. Execute query
+        # customize_Q3(self, model_name: str, num_topics: int, num_docs: int, num_words: int). Rows = ndocs
+        # @TODO
+        
+        # 5. Save results to json file
+        # @TODO
+        # Serializing json
+        #json_object = json.dumps(results.docs, indent=4)
+
+        # Save results to json file
+        #with open(results_file_path, 'w', encoding='utf-8') as f:
+        #    f.write(json_object)
+        pass
