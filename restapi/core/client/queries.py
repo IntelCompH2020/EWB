@@ -1,5 +1,5 @@
 """
-This module ...
+This module defines a class with the EWB-specific queries used to interact with Solr.
 
 
 Author: Lorena Calvo-Bartolomé
@@ -36,10 +36,10 @@ class Queries(object):
         # # Q3 ###########################################################
         # # Get documents that have a proportion of a certain topic larger
         # # than a threshold
-        # q={!payload_check f=doctpc_{topic} payloads="{threshold}" op="gte"}t{topic}
+        # q={!payload_check f=doctpc_{tpc} payloads="{thr}" op="gte"}t{tpc}
         # ================================================================
         self.Q3 = {
-            'q': '{!payload_check f=doctpc_{} payloads="{}" op="gte"}t{}',
+            'q': "{{!payload_check f=doctpc_{} payloads='{}' op='gte'}}t{}",
             'rows': '{}'
         }
 
@@ -69,10 +69,10 @@ class Queries(object):
 
         return self.Q2
 
-    def customize_Q3(self, topic: int, threshold: float, rows: int) -> dict:
+    def customize_Q3(self, model_name: str, topic: str, threshold: str, rows: int) -> dict:
 
         custom_q3 = {
-            'q': self.Q3['q'].format('doctpc_{}'.format(topic), threshold, topic),
+            'q': self.Q3['q'].format(model_name, str(threshold), str(topic)),
             'rows': self.Q3['rows'].format(rows),
         }
         return custom_q3

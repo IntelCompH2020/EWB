@@ -155,9 +155,6 @@ class SolrResp(object):
 
         # Get JSON object of the result
         resp = resp.json()
-        
-        logger.info("This is the json response")
-        logger.info(resp)
 
         # If response header has status 0, request is acknowledged
         if 'responseHeader' in resp and resp['responseHeader']['status'] == 0:
@@ -268,7 +265,7 @@ class SolrClient(object):
                 "stored": "true",
                 "termPositions": "true",
                 "termVectors": "true",
-                "multiValued": "true"
+                "multiValued": "false"
             }
         }
         url_ = '{}/api/collections/{}/schema?'.format(self.solr_url, col_name)
