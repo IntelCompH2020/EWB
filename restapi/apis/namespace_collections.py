@@ -18,14 +18,6 @@ api = Namespace('Collections',
                 description='Generic Solr-related operations (collections creation and deletion, queries, etc.)')
 
 # ======================================================
-# Collection metadata for doc and response marshalling
-# ======================================================
-coll = api.model('Collection', {
-    'name': fields.String(required=True,
-                          description='The collection name')
-})
-
-# ======================================================
 # Namespace variables
 # ======================================================
 # Create Solr client
@@ -65,8 +57,6 @@ query_parser.add_argument(
 @api.route('/createCollection/')
 class CreateCollection(Resource):
     @api.doc(parser=parser)
-    # serialize the output into a response body
-    @api.marshal_with(coll, code=200)
     def post(self):
         args = parser.parse_args()
         collection = args['collection']
@@ -89,7 +79,6 @@ class DeleteCollection(Resource):
 
 @api.route('/listCollections/')
 class ListCollections(Resource):
-    @api.marshal_with(coll, code=200)
     def get(self):
         return sc.list_collections()
 
@@ -131,8 +120,4 @@ class Query(Resource):
         # Serializing json
         json_object = json.dumps(results.docs, indent=4)
 
-        # Save results to json file
-        with open(results_file_path, 'w', encoding='utf-8') as f:
-            f.write(json_object)
-
-        return code
+        return json_object, code

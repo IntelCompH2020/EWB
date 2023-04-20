@@ -11,17 +11,8 @@ from core.client.ewb_solr_client import EWBSolrClient
 # ======================================================
 # Define namespace for managing models
 # ======================================================
-api = Namespace('Models', description='Models-related operations for the EWB (i.e., index/delete models))')
-
-# ======================================================
-# Collection metadata for doc and response marshalling
-# ======================================================
-# corpus = api.model('Corpus', {
-#     'name': fields.String(required=True,
-#                           description='The corpus name'),
-#     'ndocs': fields.String(required=True,
-#                            description='The number of documents in the corpus')
-# })
+api = Namespace(
+    'Models', description='Models-related operations for the EWB (i.e., index/delete models))')
 
 # ======================================================
 # Namespace variables
@@ -53,3 +44,10 @@ class DeleteModel(Resource):
         model_path = args['model_path']
         sc.delete_model(model_path)
         return '', 200
+
+
+@api.route('/listAllModels/')
+class ListAllModels(Resource):
+    def get(self):
+        models_lst, code = sc.list_model_collections()
+        return models_lst, code

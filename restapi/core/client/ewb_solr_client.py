@@ -6,12 +6,11 @@ Date: 17/04/2023
 """
 
 import configparser
-import json
 import logging
 import pathlib
 
 from core.client.base.solr_client import SolrClient
-from core.client.queries import Queries
+from core.entities.queries import Queries
 from core.entities.corpus import Corpus
 from core.entities.model import Model
 
@@ -118,25 +117,60 @@ class EWBSolrClient(SolrClient):
 
         corpus_lst = [doc["corpus_name"] for doc in results.docs]
 
-        return corpus_lst
+        return corpus_lst, sc
 
-    def get_corpus_coll_fields(self, corpus_col: str):
+    def get_corpus_coll_fields(self, corpus_col: str) -> list:
         """Returns a list of the fields of the corpus collection given by 'corpus_col' that have been defined in the Solr server.
 
         Parameters
         ----------
         corpus_col : str
             Name of the corpus collection whose fields are to be retrieved.
+
+        Returns
+        -------
+        models: list
+            List of fields of the corpus collection
+        sc: int
+            Status code of the request
         """
         sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
                                          col_name=self.corpus_col,
                                          fl="fields")
+
         if sc != 200:
             self.logger.error(
                 f"-- -- Error getting fields of {corpus_col}. Aborting operation...")
             return
 
-        return results.docs[0]["fields"]
+        return results.docs[0]["fields"], sc
+
+    def get_corpus_models(self, corpus_col: str):
+        """Returns a list with the models associated with the corpus given by 'corpus_col'
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose models are to be retrieved.
+
+        Returns
+        -------
+        models: list
+            List of models associated with the corpus
+        sc: int
+            Status code of the request
+        """
+
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                         col_name=self.corpus_col,
+                                         fl="models")
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting models of {corpus_col}. Aborting operation...")
+            return
+
+        return results.docs[0]["models"], sc
 
     def delete_corpus(self,
                       corpus_logical_path: str):
@@ -260,7 +294,7 @@ class EWBSolrClient(SolrClient):
 
         models_lst = [model for doc in results.docs for model in doc["models"]]
 
-        return models_lst
+        return models_lst, sc
 
     def delete_model(self, model_path: str):
         """
@@ -324,7 +358,10 @@ class EWBSolrClient(SolrClient):
     # ======================================================
     # QUERIES
     # ======================================================
-    def do_Q1(self, corpus_col: str, doc_id: str, model_name: str, results_file_path: str) -> int:
+    def do_Q1(self,
+              corpus_col: str,
+              doc_id: str,
+              model_name: str):
         """Executes query Q1.
 
         Parameters
@@ -335,24 +372,24 @@ class EWBSolrClient(SolrClient):
             ID of the document to be retrieved.
         model_name : str
             Name of the model to be used for the retrieval.
-        results_file_path : str
-            Path to the file where the results of the query will be stored
 
         Returns
         -------
+        thetas: str
+            String representation of the document-topic proportions
         sc : int
             The status code of the response.  
         """
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls = self.list_corpus_collections()
+        corpus_colls, sc = self.list_corpus_collections()
         if corpus_col not in corpus_colls:
             self.logger.error(
                 f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields = self.get_corpus_coll_fields(corpus_col)
+        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
         if 'doctpc_' + model_name not in corpus_fields:
             self.logger.error(
                 f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
@@ -370,32 +407,22 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q1. Aborting operation...")
             return
 
-        # 4. Save results to json file
-        # Serializing json
-        json_object = json.dumps(results.docs, indent=4)
+        return results.docs[0]['doctpc_' + model_name], sc
 
-        # Save results to json file
-        with open(results_file_path, 'w', encoding='utf-8') as f:
-            f.write(json_object)
-
-        return sc
-
-    def do_Q2(self, col: str, results_file_path: str = None) -> int:
+    def do_Q2(self, col: str):
         """Executes query Q2.
 
         Parameters
         ----------
         corpus_col : str
             Name of the corpus collection
-        results_file_path : str
-            Path to the file where the results of the query will be stored
 
         Returns
         -------
-        sc : int
-            The status code of the response
         nr_docs : int
             Number of documents in the collection
+        sc : int
+            The status code of the response
         """
 
         q2 = self.querier.customize_Q2()
@@ -409,41 +436,64 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q2. Aborting operation...")
             return
 
-        numFound = results.hits
+        return int(results.hits), sc
 
-        # Save results to json file if path is provided
-        if results_file_path:
-            # Serializing json
-            json_object = json.dumps(numFound, indent=4)
+    def do_Q3(self,
+              corpus_col: str,
+              model_name: str,
+              topic_id: str,
+              thr: str,
+              start: str,
+              rows: str):
+        """Executes query Q3.
 
-            # Save results to json file
-            with open(results_file_path, 'w', encoding='utf-8') as f:
-                f.write(json_object)
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection
+        model_name: str
+            Name of the model to be used for the retrieval
+        topic_id: str
+            ID of the topic to be retrieved
+        thr: str
+            Threshold to be used for the retrieval
+        start: str
+            Offset into the responses at which Solr should begin displaying content
+        rows: str
+            How many rows of responses are displayed at a time 
 
-        return numFound, sc
-
-    def do_Q3(self, corpus_col: str, model_name: str, topic_id: str, thr: str, results_file_path: str) -> int:
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.  
+        """
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls = self.list_corpus_collections()
+        corpus_colls, sc = self.list_corpus_collections()
         if corpus_col not in corpus_colls:
             self.logger.error(
                 f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields = self.get_corpus_coll_fields(corpus_col)
+        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
         if 'doctpc_' + model_name not in corpus_fields:
             self.logger.error(
                 f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
             return
 
-        # 3. Execute query Q2 to extract ndocs
-        numFound, sc = self.do_Q2(corpus_col)
+        # 3. Customize start and rows
+        if start is None:
+            start = str(0)
+        if rows is None:
+            numFound, sc = self.do_Q2(corpus_col)
+            rows = str(numFound)
 
         # 4. Execute query
         q3 = self.querier.customize_Q3(
-            model_name=model_name, topic=topic_id, threshold=thr, rows=numFound)
+            model_name=model_name, topic=topic_id, threshold=thr, start=start, rows=rows)
         params = {k: v for k, v in q3.items() if k != 'q'}
 
         sc, results = self.execute_query(
@@ -454,11 +504,75 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q3. Aborting operation...")
             return
 
-        # 5. Save results to json file
-        # Serializing json
-        json_object = json.dumps(results.docs, indent=4)
+        return results.docs, sc
 
-        # Save results to json file
-        with open(results_file_path, 'w', encoding='utf-8') as f:
-            f.write(json_object)
-        pass
+    def do_Q4(self,
+              corpus_col: str,
+              model_name: str,
+              doc_id: str,
+              start: str,
+              rows: str):
+        """Executes query Q4.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection
+        model_name: str
+            Name of the model to be used for the retrieval
+        doc_id: str
+            ID of the document whose similarity is going to be checked against all other documents in 'corpus_col'
+         start: str
+            Offset into the responses at which Solr should begin displaying content
+        rows: str
+            How many rows of responses are displayed at a time 
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.  
+        """
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls, sc = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Check that corpus_col has the model_name field
+        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
+        if 'doctpc_' + model_name not in corpus_fields:
+            self.logger.error(
+                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+            return
+
+        # 3. Execute Q1 to get thetas of document given by doc_id
+        thetas, sc = self.do_Q1(
+            corpus_col=corpus_col, model_name=model_name, doc_id=doc_id)
+        thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
+
+        # 4. Customize start and rows
+        if start is None:
+            start = str(0)
+        if rows is None:
+            numFound, sc = self.do_Q2(corpus_col)
+            rows = str(numFound)
+
+        # 5. Execute query
+        q4 = self.querier.customize_Q4(
+            model_name=model_name, thetas=thetas_query,
+            start=start, rows=rows)
+        params = {k: v for k, v in q4.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q4['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q4. Aborting operation...")
+            return
+
+        return results.docs, sc

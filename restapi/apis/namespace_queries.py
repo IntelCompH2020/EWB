@@ -5,14 +5,14 @@ Author: Lorena Calvo-Bartolomé
 Date: 13/04/2023
 """
 
-from datetime import datetime
 from flask_restx import Namespace, Resource, reqparse
 from core.client.ewb_solr_client import EWBSolrClient
 
 # ======================================================
 # Define namespace for managing queries
 # ======================================================
-api = Namespace('Queries', description='Specfic Solr queries for the EWB (i.e., Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10, etc.)')
+api = Namespace(
+    'Queries', description='Specfic Solr queries for the EWB.')
 
 # ======================================================
 # Namespace variables
@@ -28,14 +28,10 @@ q1_parser.add_argument(
     'doc_id', help='ID of the document whose whose doc-topic distribution associated to a specific model is to be retrieved', required=True)
 q1_parser.add_argument(
     'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution to be retrieved', required=True)
-q1_parser.add_argument(
-    'results_file_path', help="Path to the file where the results will be stored. If not specified, it will be saved in '/data/results/{corpus_collection}\_Q1\_{date}.json'", required=False)
 
 q2_parser = reqparse.RequestParser()
 q2_parser.add_argument(
     'collection', help='Name of the collection', required=True)
-q2_parser.add_argument(
-    'results_file_path', help="Path to the file where the results will be stored. If not specified, it will be saved in '/data/results/{collection}\_Q2\_{date}.json'", required=False)
 
 q3_parser = reqparse.RequestParser()
 q3_parser.add_argument(
@@ -47,47 +43,49 @@ q3_parser.add_argument(
 q3_parser.add_argument(
     'threshold', help='Query threshold', required=True)
 q3_parser.add_argument(
-    'results_file_path', help="Path to the file where the results will be stored. If not specified, it will be saved in '/data/results/{corpus_collection}\_Q3\_{date}.json'", required=False)
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content.', required=False)
+q3_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
+q4_parser = reqparse.RequestParser()
+q4_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q4_parser.add_argument(
+    'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution', required=True)
+q4_parser.add_argument(
+    'doc_id', help="ID of the document whose similarity is going to be checked against all other documents in 'corpus_collection'", required=True)
+q4_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q4_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
 
-@api.route('/q1/')
-class Q1(Resource):
+@api.route('/getThetasDocById/')
+class get_thetas_doc_by_id(Resource):
     @api.doc(parser=q1_parser)
     def get(self):
         args = q1_parser.parse_args()
         corpus_collection = args['corpus_collection']
         doc_id = args['doc_id']
         model_name = args['model_name']
-        results_file_path = args['results_file_path']
 
-        if results_file_path is None:
-            results_file_path = f"/data/results/{corpus_collection}_Q1_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-
-        status_code = sc.do_Q1(corpus_col=corpus_collection, doc_id=doc_id,
-                               model_name=model_name, results_file_path=results_file_path)
-
-        return '', status_code
+        return sc.do_Q1(corpus_col=corpus_collection,
+                        doc_id=doc_id,
+                        model_name=model_name)
 
 
-@api.route('/q2/')
-class Q2(Resource):
+@api.route('/getNrDocsColl/')
+class get_nr_docs_coll(Resource):
     @api.doc(parser=q2_parser)
     def get(self):
         args = q2_parser.parse_args()
         collection = args['collection']
-        results_file_path = args['results_file_path']
 
-        if results_file_path is None:
-            results_file_path = f"/data/results/{collection}_Q2_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-
-        _, status_code = sc.do_Q2(col=collection,
-                                  results_file_path=results_file_path)
-
-        return '', status_code
+        return sc.do_Q2(col=collection)
 
 
-@api.route('/q3/')
-class Q3(Resource):
+@api.route('/GetDocsWithThetasLargerThanThr/')
+class get_docs_with_thetas_larger_than_thr(Resource):
     @api.doc(parser=q3_parser)
     def get(self):
         args = q3_parser.parse_args()
@@ -95,12 +93,30 @@ class Q3(Resource):
         model_name = args['model_name']
         topic_id = args['topic_id']
         threshold = args['threshold']
-        results_file_path = args['results_file_path']
+        start = args['start']
+        rows = args['rows']
 
-        if results_file_path is None:
-            results_file_path = f"/data/results/{corpus_collection}_Q3_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        return sc.do_Q3(corpus_col=corpus_collection,
+                        model_name=model_name,
+                        topic_id=topic_id,
+                        thr=threshold,
+                        start=start,
+                        rows=rows)
 
-        status_code = sc.do_Q3(corpus_col=corpus_collection, model_name=model_name,
-                               topic_id=topic_id, thr=threshold, results_file_path=results_file_path)
 
-        return '', status_code
+@api.route('/GetDocsWithHighSemanticRelationshipWithDocid/')
+class get_docs_with_high_semantic_relationship_with_docid(Resource):
+    @api.doc(parser=q4_parser)
+    def get(self):
+        args = q4_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        model_name = args['model_name']
+        doc_id = args['doc_id']
+        start = args['start']
+        rows = args['rows']
+
+        return sc.do_Q4(corpus_col=corpus_collection,
+                        model_name=model_name,
+                        doc_id=doc_id,
+                        start=start,
+                        rows=rows)

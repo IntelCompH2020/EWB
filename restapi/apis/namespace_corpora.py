@@ -10,17 +10,8 @@ from core.client.ewb_solr_client import EWBSolrClient
 # ======================================================
 # Define namespace for managing corpora
 # ======================================================
-api = Namespace('Corpora', description='Corpora-related operations for the EWB (i.e., index/delete corpora))')
-
-# ======================================================
-# Collection metadata for doc and response marshalling
-# ======================================================
-# corpus = api.model('Corpus', {
-#     'name': fields.String(required=True,
-#                           description='The corpus name'),
-#     'ndocs': fields.String(required=True,
-#                            description='The number of documents in the corpus')
-# })
+api = Namespace(
+    'Corpora', description='Corpora-related operations for the EWB (i.e., index/delete corpora))')
 
 # ======================================================
 # Namespace variables
@@ -31,7 +22,11 @@ sc = EWBSolrClient(api.logger)
 # Define parser to take inputs from user
 parser = reqparse.RequestParser()
 parser.add_argument(
-    'corpus_path', help="Specify the path of the corpus to index / delete (i.e., path to the json file within the /datasets folder in the project folder describing a ITMT's logical corpus)")
+    'corpus_path', help="Path of the corpus to index / delete (i.e., path to the json file within the /datasets folder in the project folder describing a ITMT's logical corpus)")
+
+parser2 = reqparse.RequestParser()
+parser2.add_argument(
+    'corpus_col', help="Name of the corpus collection to list its models")
 
 
 @api.route('/indexCorpus/')
@@ -52,3 +47,19 @@ class DeleteCorpus(Resource):
         corpus_path = args['corpus_path']
         sc.delete_corpus(corpus_path)
         return '', 200
+
+
+@api.route('/listAllCorpus/')
+class listAllCorpus(Resource):
+    def get(self):
+        corpus_lst, code = sc.list_corpus_collections()
+        return corpus_lst, code
+    
+@api.route('/listCorpusModels/')
+class listCorpusModels(Resource):
+    @api.doc(parser=parser2)
+    def get(self):
+        args = parser2.parse_args()
+        corpus_col = args['corpus_col']
+        corpus_lst, code = sc.get_corpus_models(corpus_col=corpus_col)
+        return corpus_lst, code

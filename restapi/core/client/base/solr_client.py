@@ -307,8 +307,7 @@ class SolrClient(object):
 
         # Check if collection already exists
         colls, _ = self.list_collections()
-        colls_names = [d["name"] for d in colls]
-        if col_name in colls_names:
+        if col_name in colls:
             solr_resp = SolrResp.from_error(
                 409, "Collection {} already exists".format(col_name))
             return _, solr_resp.status_code
@@ -329,7 +328,7 @@ class SolrClient(object):
         solr_resp = self._do_request(type="post", url=url_,
                                      headers=headers_, json=data)
 
-        return [{'name': col_name}], solr_resp.status_code
+        return col_name, solr_resp.status_code
 
     def delete_collection(self, col_name: str):
         """
@@ -377,14 +376,7 @@ class SolrClient(object):
         # Send request to Solr
         solr_resp = self._do_request(type="get", url=url_)
 
-        # Get collections in the format required my the Collection namespace
-        if type:
-            collections_dicts = [{"name": coll} for coll in solr_resp.data]
-
-        else:
-            collections_dicts = [{"name": coll} for coll in solr_resp.data]
-
-        return collections_dicts, solr_resp.status_code
+        return solr_resp.data, solr_resp.status_code
 
     # ======================================================
     # INDEXING
