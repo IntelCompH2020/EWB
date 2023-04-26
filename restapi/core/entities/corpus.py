@@ -95,10 +95,6 @@ class Corpus(object):
 
         return fields_dict
 
-    def calculate_sim_pairs(self):
-        # TODO: Pairs of documents with very high semantic similarity.
-        pass
-
 
 # if __name__ == '__main__':
 #     corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/data/Cordis.json")

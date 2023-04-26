@@ -95,6 +95,8 @@ class Model(object):
         df = df.apply(pd.Series.explode)
         df.reset_index(drop=True)
         df["id"] = [f"t{i}" for i in range(len(df))]
+        # TODO: This should be removed once the topic model makes it on its own
+        df["tpc_labels"] = [f"Topic {i}" for i in range(len(df))]
         cols = df.columns.tolist()
         cols = cols[-1:] + cols[:-1]
         df = df[cols]
@@ -104,7 +106,8 @@ class Model(object):
             vector = Model.sum_up_to(vector, max_sum)
             rpr = ""
             for idx, val in enumerate(vector):
-                rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
+                if val != 0:
+                    rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
             rpr = rpr.rstrip()
             return rpr
 
@@ -116,10 +119,10 @@ class Model(object):
 
         return json_lst
 
-    def get_model_info_update(self, action:str) -> list[dict]:
+    def get_model_info_update(self, action: str) -> list[dict]:
         """
         Retrieves the information from the model that goes to a corpus collection (document-topic proportions) and save it as an update in the format required by Solr.
-        
+
         Parameters
         ----------
         action: str
@@ -157,7 +160,8 @@ class Model(object):
             vector = Model.sum_up_to(vector, max_sum)
             rpr = ""
             for idx, val in enumerate(vector):
-                rpr += "t" + str(idx) + "|" + str(val) + " "
+                if val != 0:
+                    rpr += "t" + str(idx) + "|" + str(val) + " "
             rpr = rpr.rstrip()
             return rpr
 
@@ -170,7 +174,7 @@ class Model(object):
 
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
-        
+
         new_list = []
         if action == 'set':
             for d in json_lst:
@@ -185,7 +189,7 @@ class Model(object):
 
         return new_list, self.corpus_name
 
-    def get_corpora_model_update(self, id:int, action:str) -> list[dict]:
+    def get_corpora_model_update(self, id: int, action: str) -> list[dict]:
         """Generates an update for the CORPUS_COL collection.
         Parameters
         ----------
@@ -193,17 +197,17 @@ class Model(object):
             Identifier of the corpus collection in CORPUS_COL
         action: str
             Action to be performed ('add', 'remove')
-            
+
         Returns:
         --------
         json_lst: list[dict]
             A list of dictionaries with the update.
-        """        
-    
+        """
+
         json_lst = [{"id": id,
                     "fields": {action: 'doctpc_' + self.name},
-                    "models": {action: self.name}
-                    }]
+                     "models": {action: self.name}
+                     }]
 
         return json_lst
 

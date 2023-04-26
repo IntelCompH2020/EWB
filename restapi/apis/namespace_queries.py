@@ -29,6 +29,10 @@ q1_parser.add_argument(
 q1_parser.add_argument(
     'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution to be retrieved', required=True)
 
+q2_parser = reqparse.RequestParser()
+q2_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+
 q3_parser = reqparse.RequestParser()
 q3_parser.add_argument(
     'collection', help='Name of the collection', required=True)
@@ -59,6 +63,22 @@ q5_parser.add_argument(
 q5_parser.add_argument(
     'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
+q6_parser = reqparse.RequestParser()
+q6_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q6_parser.add_argument(
+    'doc_id', help="ID of the document whose metadata is going to be retrieved'", required=True)
+
+q7_parser = reqparse.RequestParser()
+q7_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q7_parser.add_argument(
+    'string', help="String to be search in the title field'", required=True)
+
+q8_parser = reqparse.RequestParser()
+q8_parser.add_argument(
+    'model_collection', help='Name of the model collection', required=True)
+
 
 @api.route('/getThetasDocById/')
 class get_thetas_doc_by_id(Resource):
@@ -72,6 +92,16 @@ class get_thetas_doc_by_id(Resource):
         return sc.do_Q1(corpus_col=corpus_collection,
                         doc_id=doc_id,
                         model_name=model_name)
+
+
+@api.route('/getCorpusMetadataFields/')
+class getCorpusMetadataFields(Resource):
+    @api.doc(parser=q2_parser)
+    def get(self):
+        args = q2_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+
+        return sc.do_Q2(corpus_col=corpus_collection)
 
 
 @api.route('/getNrDocsColl/')
@@ -120,3 +150,37 @@ class getDocsWithHighSimWithDocByid(Resource):
                         doc_id=doc_id,
                         start=start,
                         rows=rows)
+
+
+@api.route('/getMetadataDocById/')
+class getMetadataDocById(Resource):
+    @api.doc(parser=q6_parser)
+    def get(self):
+        args = q6_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        doc_id = args['doc_id']
+
+        return sc.do_Q6(corpus_col=corpus_collection,
+                        doc_id=doc_id)
+
+
+@api.route('/getDocsWithString/')
+class getDocsWithString(Resource):
+    @api.doc(parser=q7_parser)
+    def get(self):
+        args = q7_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        string = args['string']
+
+        return sc.do_Q7(corpus_col=corpus_collection,
+                        string=string)
+
+
+@api.route('/getTopicsLabels/')
+class getTopicsLabels(Resource):
+    @api.doc(parser=q8_parser)
+    def get(self):
+        args = q8_parser.parse_args()
+        model_collection = args['model_collection']
+
+        return sc.do_Q8(model_col=model_collection)

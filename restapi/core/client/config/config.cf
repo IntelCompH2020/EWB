@@ -11,3 +11,4 @@ cons_format = %%(levelname)-8s | %%(message)s
 #Default setting for number of topics
 batch_size=100
 corpus_col=Corpora
+no_meta_fields=rawtext,lemmas,all_lemmas,_version_

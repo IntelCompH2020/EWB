@@ -23,12 +23,15 @@ class Queries(object):
         }
 
         # ================================================================
-        # # Q2: getMetadataDocById  ##################################################################
-        # # Get metadata of a selected document in a corpus collection
+        # # Q2: getCorpusMetadataFields  ##################################################################
+        # # Get the name of the metadata fields available for
+        # a specific corpus collection (not all corpus have
+        # the same metadata available)
+        # http://localhost:8983/solr/#/Corpora/query?q=corpus_name:Cordis&q.op=OR&indent=true&fl=fields&useParams=
         # ================================================================
         self.Q2 = {
-            'q': 'id:{}',
-            'fl': '',
+            'q': 'corpus_name:{}',
+            'fl': 'fields',
         }
 
         # ================================================================
@@ -74,13 +77,87 @@ class Queries(object):
             'rows': '{}'
         }
 
-    def customize_Q1(self, id: str, model_name: str) -> dict:
+        # ================================================================
+        # # Q6: getMetadataDocById
+        # ################################################################
+        # # Get metadata of a selected document in a corpus collection
+        # ---------------------------------------------------------------
+        # Previous steps:
+        # ---------------------------------------------------------------
+        # 1. Get metadata fields of that corpus collection with Q2
+        # 2. Parse metadata in Q6
+        # 3. Execute Q6
+        # ================================================================
+        self.Q6 = {
+            'q': 'id:{}',
+            'fl': '{}'
+        }
+
+        # ================================================================
+        # # Q7: getDocsWithString
+        # ################################################################
+        # # Given a corpus collection, it retrieves the ids of the documents whose title contains such a string
+        # http://localhost:8983/solr/#/{collection}/query?q=title:{string}&q.op=OR&indent=true&useParams=
+        # ================================================================
+        self.Q7 = {
+            'q': '{}:{}',
+            'fl': 'id'
+        }
+
+        # ================================================================
+        # # Q8: getTopicsLabels
+        # ################################################################
+        # # Get the label associated to each of the topics in a given model
+        # http://localhost:8983/solr/{model}/select?fl=id%2C%20tpc_labels&indent=true&q.op=OR&q=*%3A*&useParams=
+        # ================================================================
+        self.Q8 = {
+            'q': '*:*',
+            'fl': 'id,tpc_labels'
+        }
+
+        # ================================================================
+        # # Q9: getTopicTopDocs
+        # ################################################################
+        # # Get the top documents for a given topic in a model collection
+        # ================================================================
+
+        # ================================================================
+        # # Q10: getModelInfo
+        # ################################################################
+        # # Get the information (chemical description, label, statistics,
+        # top docs, etc.) associated to each topic in a model collection
+        # ================================================================
+
+        # ================================================================
+        # # Q11: getMostCorrelatedTopics
+        # ################################################################
+        # # Get the most correlated topics to a given one in a selected
+        # model
+        # ================================================================
+
+        # ================================================================
+        # # Q12: getMostSimilarDocs
+        # ################################################################
+        # # Get the most similar documents to a given one in a selected
+        # corpus according to a given model
+        # ================================================================
+
+    def customize_Q1(self,
+                     id: str,
+                     model_name: str) -> dict:
         """Customizes query Q1 'getThetasDocById'.
 
+        Parameters
+        ----------
         id: str
             Document id.
         model_name: str
             Name of the topic model whose topic distribution is to be retrieved.
+
+        Returns
+        -------
+        custom_q1: dict
+            Customized query Q1.
         """
 
         custom_q1 = {
@@ -89,11 +166,36 @@ class Queries(object):
         }
         return custom_q1
 
-    def customize_Q2(self) -> dict:
+    def customize_Q2(self,
+                     corpus_name: str) -> dict:
+        """Customizes query Q2 'getCorpusMetadataFields'
 
-        return self.Q2
+        Parameters
+        ----------
+        corpus_name: str
+            Name of the corpus collection whose metadata fields are to be retrieved.
+
+        Returns
+        -------
+        custom_q2: dict
+            Customized query Q2.
+        """
+
+        custom_q2 = {
+            'q': self.Q2['q'].format(corpus_name),
+            'fl': self.Q2['fl'],
+        }
+
+        return custom_q2
 
     def customize_Q3(self) -> dict:
+        """Customizes query Q3 'getNrDocsColl'
+
+        Returns
+        -------
+        self.Q3: dict
+            The query Q3 (no customization is needed).
+        """
 
         return self.Q3
 
@@ -103,6 +205,26 @@ class Queries(object):
                      threshold: str,
                      start: str,
                      rows: str) -> dict:
+        """Customizes query Q4 'getDocsWithThetasLargerThanThr'
+
+        Parameters
+        ----------
+        model_name: str
+            Name of the topic model whose topic distribution is to be retrieved.
+        topic: str
+            Topic number.
+        threshold: str
+            Threshold value.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+
+        Returns
+        -------
+        custom_q4: dict
+            Customized query Q4.
+        """
 
         custom_q4 = {
             'q': self.Q4['q'].format(model_name, str(threshold), str(topic)),
@@ -111,10 +233,29 @@ class Queries(object):
         }
         return custom_q4
 
-    def customize_Q5(self, model_name: str,
+    def customize_Q5(self,
+                     model_name: str,
                      thetas: str,
                      start: str,
                      rows: str) -> dict:
+        """Customizes query Q5 'getDocsWithHighSimWithDocByid'
+
+        Parameters
+        ----------
+        model_name: str
+            Name of the topic model whose topic distribution is to be retrieved.
+        thetas: str
+            Topic distribution of the selected document.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+
+        Returns
+        -------
+        custom_q5: dict
+            Customized query Q5.
+        """
 
         custom_q5 = {
             'q': self.Q5['q'].format(model_name, thetas),
@@ -123,3 +264,65 @@ class Queries(object):
             'rows': self.Q5['rows'].format(rows),
         }
         return custom_q5
+
+    def customize_Q6(self,
+                     id: str,
+                     meta_fields: str) -> dict:
+        """Customizes query Q6 'getMetadataDocById'
+
+
+        Parameters
+        ----------
+        id: str
+            Document id.
+        meta_fields: str
+            Metadata fields of the corpus collection to be retrieved.
+
+        Returns
+        -------
+        custom_q6: dict
+            Customized query Q6.
+        """
+
+        custom_q6 = {
+            'q': self.Q6['q'].format(id),
+            'fl': self.Q6['fl'].format(meta_fields)
+        }
+
+        return custom_q6
+
+    def customize_Q7(self,
+                     title_field: str,
+                     string: str) -> dict:
+        """Customizes query Q7 'getDocsWithString'
+
+        Parameters
+        ----------
+        title_field: str
+            Title field of the corpus collection.
+        string: str
+            String to be searched in the title field.
+
+        Returns
+        -------
+        custom_q7: dict
+            Customized query Q7.
+        """
+
+        custom_q7 = {
+            'q': self.Q7['q'].format(title_field, string),
+            'fl': self.Q7['fl']
+        }
+
+        return custom_q7
+
+    def customize_Q8(self) -> dict:
+        """Customizes query Q8 'getTopicsLabels'
+
+        Returns
+        -------
+        self.Q8: dict
+            The query Q8 (no customization is needed).
+        """
+
+        return self.Q8

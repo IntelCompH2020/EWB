@@ -27,6 +27,7 @@ class EWBSolrClient(SolrClient):
         cf.read(config_file)
         self.batch_size = int(cf.get('restapi', 'batch_size'))
         self.corpus_col = cf.get('restapi', 'corpus_col')
+        self.no_meta_fields = cf.get('restapi', 'no_meta_fields').split(",")
 
         # Create Queries object for managing queries
         self.querier = Queries()
@@ -409,8 +410,45 @@ class EWBSolrClient(SolrClient):
 
         return {'thetas': results.docs[0]['doctpc_' + model_name]}, sc
 
-    def do_Q2(self):
-        return
+    def do_Q2(self, corpus_col: str):
+        """Executes query Q2.
+
+        Parameters
+        ----------
+        corpus_col: str
+            Name of the corpus collection
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the metadata fields of the corpus collection in the form: {'metadata_fields': [field1, field2, ...]}
+        sc: int
+            The status code of the response
+        """
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls, sc = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Execute query (to self.corpus_col)
+        q2 = self.querier.customize_Q2(corpus_name=corpus_col)
+        params = {k: v for k, v in q2.items() if k != 'q'}
+        sc, results = self.execute_query(
+            q=q2['q'], col_name=self.corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q2. Aborting operation...")
+            return
+
+        # Filter out metadata fields that we don't consider metadata
+        meta_fields = [field for field in results.docs[0]
+                       ['fields'] if field not in self.no_meta_fields and not field.startswith("doctpc_")]
+
+        return {'metadata_fields': meta_fields}, sc
 
     def do_Q3(self, col: str):
         """Executes query Q3.
@@ -422,8 +460,8 @@ class EWBSolrClient(SolrClient):
 
         Returns
         -------
-        nr_docs : int
-            Number of documents in the collection
+        json_object : dict
+            JSON object with the number of documents in the corpus collection
         sc : int
             The status code of the response
         """
@@ -436,7 +474,7 @@ class EWBSolrClient(SolrClient):
 
         if sc != 200:
             self.logger.error(
-                f"-- -- Error executing query Q2. Aborting operation...")
+                f"-- -- Error executing query Q3. Aborting operation...")
             return
 
         return {'ndocs': int(results.hits)}, sc
@@ -504,7 +542,7 @@ class EWBSolrClient(SolrClient):
 
         if sc != 200:
             self.logger.error(
-                f"-- -- Error executing query Q3. Aborting operation...")
+                f"-- -- Error executing query Q4. Aborting operation...")
             return
 
         return results.docs, sc
@@ -576,7 +614,132 @@ class EWBSolrClient(SolrClient):
 
         if sc != 200:
             self.logger.error(
-                f"-- -- Error executing query Q4. Aborting operation...")
+                f"-- -- Error executing query Q5. Aborting operation...")
             return
 
+        return results.docs, sc
+
+    def do_Q6(self,
+              corpus_col: str,
+              doc_id: str):
+        """Executes query Q6.
+
+        Parameters
+        ----------
+        corpus_col: str
+            Name of the corpus collection
+        doc_id: str
+            ID of the document whose metadata is going to be retrieved
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.
+        """
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls, sc = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Get meta fields
+        meta_fields_dict, sc = self.do_Q2(corpus_col)
+        meta_fields = ','.join(meta_fields_dict['metadata_fields'])
+
+        # 3. Execute query
+        q6 = self.querier.customize_Q6(id=doc_id, meta_fields=meta_fields)
+        params = {k: v for k, v in q6.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q6['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q6. Aborting operation...")
+            return
+
+        return results.docs, sc
+
+    def do_Q7(self,
+              corpus_col: str,
+              string: str):
+        """Executes query Q7.
+
+        Parameters
+        ----------
+        corpus_col: str
+            Name of the corpus collection
+        string: str
+            String to be searched in the title of the documents
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.
+        """
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        corpus_colls, sc = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return
+
+        # 2. Execute query
+        # TODO: check if 'title' works for all collections
+        q7 = self.querier.customize_Q7(title_field='title', string=string)
+        params = {k: v for k, v in q7.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q7['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q7. Aborting operation...")
+            return
+
+        return results.docs, sc
+
+    def do_Q8(self,
+              model_col:str):
+        """Executes query Q8.
+        
+        Parameters
+        ----------
+        model_col: str
+            Name of the model collection
+        
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.
+        """
+        
+        # 1. Check that model_col is indeed a model collection
+        model_colls, sc = self.list_model_collections()
+        if model_col not in model_colls:
+            self.logger.error(
+                f"-- -- {model_col} is not a model collection. Aborting operation...")
+            return
+        
+        # 2. Execute query
+        q8= self.querier.customize_Q8()
+        params = {k: v for k, v in q8.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q8['q'], col_name=model_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q8. Aborting operation...")
+            return
+        
         return results.docs, sc
