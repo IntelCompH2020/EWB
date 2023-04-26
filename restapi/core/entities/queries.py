@@ -55,7 +55,7 @@ class Queries(object):
         }
 
         # ================================================================
-        # # Q5: GetDocsWithHighSemanticRelationshipWithDocid
+        # # Q5: getDocsWithHighSimWithDocByid
         # ################################################################
         # # Retrieve documents that have a high semantic relationship with
         # # a selected document

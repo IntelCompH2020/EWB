@@ -104,8 +104,8 @@ class get_docs_with_thetas_larger_than_thr(Resource):
                         rows=rows)
 
 
-@api.route('/getDocsWithHighSemanticRelationshipWithDocid/')
-class get_docs_with_high_semantic_relationship_with_docid(Resource):
+@api.route('/getDocsWithHighSimWithDocByid/')
+class getDocsWithHighSimWithDocByid(Resource):
     @api.doc(parser=q5_parser)
     def get(self):
         args = q5_parser.parse_args()
