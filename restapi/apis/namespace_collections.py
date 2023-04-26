@@ -5,9 +5,6 @@ Author: Lorena Calvo-Bartolomé
 Date: 27/03/2023
 """
 
-from datetime import datetime
-import json
-
 from core.client.ewb_solr_client import EWBSolrClient
 from flask_restx import Namespace, Resource, fields, reqparse
 
@@ -30,8 +27,6 @@ parser.add_argument('collection', help='Collection name')
 query_parser = reqparse.RequestParser()
 query_parser.add_argument(
     'collection', help='Collection name on which you want to execute the query. This parameter is mandatory', required=True)
-query_parser.add_argument(
-    'results_file_path', help="Path to the file where the results will be stored. If not specified, it will be saved in '/data/results/{collection}_{date}.json'")
 query_parser.add_argument(
     'q', help="Defines a query using standard query syntax. This parameter is mandatory", required=True)
 query_parser.add_argument(
@@ -89,7 +84,6 @@ class Query(Resource):
     def get(self):
         args = query_parser.parse_args()
         collection = args['collection']
-        results_file_path = args['results_file_path']
         q = args['q']
         query_values = {
             'q_op': args['q.op'],
@@ -107,9 +101,6 @@ class Query(Resource):
         if collection is None:
             return "Collection is mandatory", 400
 
-        if results_file_path is None:
-            results_file_path = f"/data/results/{collection}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-
         # Remove all key-value pairs with value of None
         query_values = {k: v for k, v in query_values.items() if v is not None}
 
@@ -117,7 +108,4 @@ class Query(Resource):
         code, results = sc.execute_query(
             q=q, col_name=collection, **query_values)
 
-        # Serializing json
-        json_object = json.dumps(results.docs, indent=4)
-
-        return json_object, code
+        return results.docs, code

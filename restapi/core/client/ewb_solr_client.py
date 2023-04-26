@@ -375,8 +375,8 @@ class EWBSolrClient(SolrClient):
 
         Returns
         -------
-        thetas: str
-            String representation of the document-topic proportions
+        thetas: dict
+            JSON object with the document-topic proportions (thetas)
         sc : int
             The status code of the response.  
         """
@@ -407,10 +407,13 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q1. Aborting operation...")
             return
 
-        return results.docs[0]['doctpc_' + model_name], sc
+        return {'thetas': results.docs[0]['doctpc_' + model_name]}, sc
 
-    def do_Q2(self, col: str):
-        """Executes query Q2.
+    def do_Q2(self):
+        return
+
+    def do_Q3(self, col: str):
+        """Executes query Q3.
 
         Parameters
         ----------
@@ -425,27 +428,27 @@ class EWBSolrClient(SolrClient):
             The status code of the response
         """
 
-        q2 = self.querier.customize_Q2()
-        params = {k: v for k, v in q2.items() if k != 'q'}
+        q3 = self.querier.customize_Q3()
+        params = {k: v for k, v in q3.items() if k != 'q'}
 
         sc, results = self.execute_query(
-            q=q2['q'], col_name=col, **params)
+            q=q3['q'], col_name=col, **params)
 
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q2. Aborting operation...")
             return
 
-        return int(results.hits), sc
+        return {'ndocs': int(results.hits)}, sc
 
-    def do_Q3(self,
+    def do_Q4(self,
               corpus_col: str,
               model_name: str,
               topic_id: str,
               thr: str,
               start: str,
               rows: str):
-        """Executes query Q3.
+        """Executes query Q4.
 
         Parameters
         ----------
@@ -488,16 +491,16 @@ class EWBSolrClient(SolrClient):
         if start is None:
             start = str(0)
         if rows is None:
-            numFound, sc = self.do_Q2(corpus_col)
-            rows = str(numFound)
+            numFound_dict, sc = self.do_Q3(corpus_col)
+            rows = str(numFound_dict['ndocs'])
 
         # 4. Execute query
-        q3 = self.querier.customize_Q3(
+        q4 = self.querier.customize_Q4(
             model_name=model_name, topic=topic_id, threshold=thr, start=start, rows=rows)
-        params = {k: v for k, v in q3.items() if k != 'q'}
+        params = {k: v for k, v in q4.items() if k != 'q'}
 
         sc, results = self.execute_query(
-            q=q3['q'], col_name=corpus_col, **params)
+            q=q4['q'], col_name=corpus_col, **params)
 
         if sc != 200:
             self.logger.error(
@@ -506,13 +509,13 @@ class EWBSolrClient(SolrClient):
 
         return results.docs, sc
 
-    def do_Q4(self,
+    def do_Q5(self,
               corpus_col: str,
               model_name: str,
               doc_id: str,
               start: str,
               rows: str):
-        """Executes query Q4.
+        """Executes query Q5.
 
         Parameters
         ----------
@@ -550,25 +553,26 @@ class EWBSolrClient(SolrClient):
             return
 
         # 3. Execute Q1 to get thetas of document given by doc_id
-        thetas, sc = self.do_Q1(
+        thetas_dict, sc = self.do_Q1(
             corpus_col=corpus_col, model_name=model_name, doc_id=doc_id)
+        thetas = thetas_dict['thetas']
         thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
 
         # 4. Customize start and rows
         if start is None:
             start = str(0)
         if rows is None:
-            numFound, sc = self.do_Q2(corpus_col)
-            rows = str(numFound)
+            numFound_dict, sc = self.do_Q3(corpus_col)
+            rows = str(numFound_dict['ndocs'])
 
         # 5. Execute query
-        q4 = self.querier.customize_Q4(
+        q5 = self.querier.customize_Q5(
             model_name=model_name, thetas=thetas_query,
             start=start, rows=rows)
-        params = {k: v for k, v in q4.items() if k != 'q'}
+        params = {k: v for k, v in q5.items() if k != 'q'}
 
         sc, results = self.execute_query(
-            q=q4['q'], col_name=corpus_col, **params)
+            q=q5['q'], col_name=corpus_col, **params)
 
         if sc != 200:
             self.logger.error(

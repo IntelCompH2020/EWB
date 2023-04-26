@@ -23,29 +23,39 @@ class Queries(object):
         }
 
         # ================================================================
-        # # Q2: getNrDocsColl ##################################################################
+        # # Q2: getMetadataDocById  ##################################################################
+        # # Get metadata of a selected document in a corpus collection
+        # ================================================================
+        self.Q2 = {
+            'q': 'id:{}',
+            'fl': '',
+        }
+
+        # ================================================================
+        # # Q3: getNrDocsColl ##################################################################
         # # Get number of documents in a collection
         # http://localhost:8983/solr/{col}/select?q=*:*&wt=json&rows=0
         # ================================================================
-        self.Q2 = {
+        self.Q3 = {
             'q': '*:*',
             'rows': '0',
         }
 
         # ================================================================
-        # # Q3: GetDocsWithThetasLargerThanThr ##################################################################
+        # # Q4: GetDocsWithThetasLargerThanThr ##################################################################
         # # Get documents that have a proportion of a certain topic larger
         # # than a threshold
         # q={!payload_check f=doctpc_{tpc} payloads="{thr}" op="gte"}t{tpc}
         # ================================================================
-        self.Q3 = {
+        self.Q4 = {
             'q': "{{!payload_check f=doctpc_{} payloads='{}' op='gte'}}t{}",
             'start': '{}',
-            'rows': '{}'
+            'rows': '{}',
+            'fl': "id,doctpc_{}"
         }
 
         # ================================================================
-        # # Q4: GetDocsWithHighSemanticRelationshipWithDocid
+        # # Q5: GetDocsWithHighSemanticRelationshipWithDocid
         # ################################################################
         # # Retrieve documents that have a high semantic relationship with
         # # a selected document
@@ -57,33 +67,21 @@ class Queries(object):
         # 2. Parse thetas in Q1
         # 3. Execute Q4
         # ================================================================
-        self.Q4 = {
+        self.Q5 = {
             'q': "{{!vp f=doctpc_{} vector=\"{}\"}}",
             'fl': "id,score",
             'start': '{}',
             'rows': '{}'
         }
 
-        # ================================================================
-        # # Q5: GetCorpusDocumentList
-        # ################################################################
-        # # Get a list with the id of all the documents in a collection
-        # ================================================================
-        self.Q5 = {
-            # TODO: implement this query
-        }
-
-        # ================================================================
-        # # Q6: GetCorpusDocumentDetails
-        # ################################################################
-        # # Get a list with the information of all the documents in a
-        # collection
-        # ================================================================
-        self.Q6 = {
-            # TODO: implement this query
-        }
-
     def customize_Q1(self, id: str, model_name: str) -> dict:
+        """Customizes query Q1 'getThetasDocById'.
+
+        id: str
+            Document id.
+        model_name: str
+            Name of the topic model whose topic distribution is to be retrieved.
+        """
 
         custom_q1 = {
             'q': self.Q1['q'].format(id),
@@ -95,29 +93,33 @@ class Queries(object):
 
         return self.Q2
 
-    def customize_Q3(self,
+    def customize_Q3(self) -> dict:
+
+        return self.Q3
+
+    def customize_Q4(self,
                      model_name: str,
                      topic: str,
                      threshold: str,
                      start: str,
                      rows: str) -> dict:
 
-        custom_q3 = {
-            'q': self.Q3['q'].format(model_name, str(threshold), str(topic)),
-            'start': self.Q3['start'].format(start),
-            'rows': self.Q3['rows'].format(rows),
-        }
-        return custom_q3
-
-    def customize_Q4(self, model_name: str,
-                     thetas: str,
-                     start: str,
-                     rows: str) -> dict:
-
         custom_q4 = {
-            'q': self.Q4['q'].format(model_name, thetas),
-            'fl': self.Q4['fl'],
+            'q': self.Q4['q'].format(model_name, str(threshold), str(topic)),
             'start': self.Q4['start'].format(start),
             'rows': self.Q4['rows'].format(rows),
         }
         return custom_q4
+
+    def customize_Q5(self, model_name: str,
+                     thetas: str,
+                     start: str,
+                     rows: str) -> dict:
+
+        custom_q5 = {
+            'q': self.Q5['q'].format(model_name, thetas),
+            'fl': self.Q5['fl'].fornat(model_name),
+            'start': self.Q5['start'].format(start),
+            'rows': self.Q5['rows'].format(rows),
+        }
+        return custom_q5
