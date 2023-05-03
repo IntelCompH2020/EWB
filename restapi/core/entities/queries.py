@@ -259,7 +259,7 @@ class Queries(object):
 
         custom_q5 = {
             'q': self.Q5['q'].format(model_name, thetas),
-            'fl': self.Q5['fl'].fornat(model_name),
+            'fl': self.Q5['fl'].format(model_name),
             'start': self.Q5['start'].format(start),
             'rows': self.Q5['rows'].format(rows),
         }

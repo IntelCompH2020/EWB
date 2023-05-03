@@ -594,7 +594,8 @@ class EWBSolrClient(SolrClient):
         thetas_dict, sc = self.do_Q1(
             corpus_col=corpus_col, model_name=model_name, doc_id=doc_id)
         thetas = thetas_dict['thetas']
-        thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
+        self.logger.info(f"-- -- thetas: {thetas}")
+        #thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
 
         # 4. Customize start and rows
         if start is None:
@@ -605,7 +606,7 @@ class EWBSolrClient(SolrClient):
 
         # 5. Execute query
         q5 = self.querier.customize_Q5(
-            model_name=model_name, thetas=thetas_query,
+            model_name=model_name, thetas=thetas,
             start=start, rows=rows)
         params = {k: v for k, v in q5.items() if k != 'q'}
 

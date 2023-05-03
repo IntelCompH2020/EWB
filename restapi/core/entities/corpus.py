@@ -71,6 +71,8 @@ class Corpus(object):
             # Rename id-field to id
             df = df.rename(
                 columns={idfld: "id"})
+            
+            # TODO: Rename title-field to title
 
         with ProgressBar():
             ddf = df.compute(scheduler='processes')

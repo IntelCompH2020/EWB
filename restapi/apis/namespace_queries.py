@@ -134,7 +134,7 @@ class get_docs_with_thetas_larger_than_thr(Resource):
                         rows=rows)
 
 
-""" @api.route('/getDocsWithHighSimWithDocByid/')
+@api.route('/getDocsWithHighSimWithDocByid/')
 class getDocsWithHighSimWithDocByid(Resource):
     @api.doc(parser=q5_parser)
     def get(self):
@@ -149,7 +149,7 @@ class getDocsWithHighSimWithDocByid(Resource):
                         model_name=model_name,
                         doc_id=doc_id,
                         start=start,
-                        rows=rows) """
+                        rows=rows)
 
 
 @api.route('/getMetadataDocById/')
