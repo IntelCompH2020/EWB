@@ -6,11 +6,10 @@ Date: 27/03/2023
 """
 
 import json
-import pathlib
 
 import dask.dataframe as dd
-from dask.diagnostics import ProgressBar
 from core.entities.utils import convert_datetime_to_strftime, parseTimeINSTANT
+from dask.diagnostics import ProgressBar
 
 
 class Corpus(object):
@@ -71,7 +70,7 @@ class Corpus(object):
             # Rename id-field to id
             df = df.rename(
                 columns={idfld: "id"})
-            
+
             # TODO: Rename title-field to title
 
         with ProgressBar():

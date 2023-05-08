@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
 from core.entities.tm_model import TMmodel
+from scipy.spatial.distance import pdist
+import core.entities.dist_utils as dist_utils 
 
 
 class Model(object):
@@ -210,6 +212,16 @@ class Model(object):
                      }]
 
         return json_lst
+    
+    def doc_by_doc_sims(self,
+                        thetas:np.ndarray,
+                        distance:str='js_similarity'):
+        """Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed."""
+        
+        
+        distances = pdist(thetas, getattr(dist_utils, distance))
+        
+        return
 
 
 """ if __name__ == '__main__':
