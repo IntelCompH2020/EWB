@@ -101,7 +101,9 @@ class Queries(object):
         # ================================================================
         self.Q7 = {
             'q': '{}:{}',
-            'fl': 'id'
+            'fl': 'id',
+            'start': '{}',
+            'rows': '{}'
         }
 
         # ================================================================
@@ -112,7 +114,9 @@ class Queries(object):
         # ================================================================
         self.Q8 = {
             'q': '*:*',
-            'fl': 'id,tpc_labels'
+            'fl': 'id,tpc_labels',
+            'start': '{}',
+            'rows': '{}'
         }
 
         # ================================================================
@@ -293,7 +297,9 @@ class Queries(object):
 
     def customize_Q7(self,
                      title_field: str,
-                     string: str) -> dict:
+                     string: str,
+                     start: str,
+                     rows: str) -> dict:
         """Customizes query Q7 'getDocsWithString'
 
         Parameters
@@ -302,6 +308,10 @@ class Queries(object):
             Title field of the corpus collection.
         string: str
             String to be searched in the title field.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
 
         Returns
         -------
@@ -311,18 +321,36 @@ class Queries(object):
 
         custom_q7 = {
             'q': self.Q7['q'].format(title_field, string),
-            'fl': self.Q7['fl']
+            'fl': self.Q7['fl'],
+            'start': self.Q7['start'].format(start),
+            'rows': self.Q7['rows'].format(rows)
         }
 
         return custom_q7
 
-    def customize_Q8(self) -> dict:
+    def customize_Q8(self,
+                     start: str,
+                     rows: str) -> dict:
         """Customizes query Q8 'getTopicsLabels'
+
+        Parameters
+        ----------
+        rows: str
+            Number of rows to retrieve.
+        start: str
+            Start value.
 
         Returns
         -------
         self.Q8: dict
-            The query Q8 (no customization is needed).
+            The query Q8
         """
 
-        return self.Q8
+        custom_q8 = {
+            'q': self.Q8['q'],
+            'fl': self.Q8['fl'],
+            'start': self.Q8['start'].format(start),
+            'rows': self.Q8['rows'].format(rows),
+        }
+
+        return custom_q8

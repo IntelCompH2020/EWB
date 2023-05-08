@@ -74,6 +74,10 @@ q7_parser.add_argument(
     'corpus_collection', help='Name of the corpus collection', required=True)
 q7_parser.add_argument(
     'string', help="String to be search in the title field'", required=True)
+q7_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q7_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
 q8_parser = reqparse.RequestParser()
 q8_parser.add_argument(
@@ -171,9 +175,13 @@ class getDocsWithString(Resource):
         args = q7_parser.parse_args()
         corpus_collection = args['corpus_collection']
         string = args['string']
+        start = args['start']
+        rows = args['rows']
 
         return sc.do_Q7(corpus_col=corpus_collection,
-                        string=string)
+                        string=string,
+                        start=start,
+                        rows=rows)
 
 
 @api.route('/getTopicsLabels/')

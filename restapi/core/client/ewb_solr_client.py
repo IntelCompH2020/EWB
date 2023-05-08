@@ -595,7 +595,7 @@ class EWBSolrClient(SolrClient):
             corpus_col=corpus_col, model_name=model_name, doc_id=doc_id)
         thetas = thetas_dict['thetas']
         self.logger.info(f"-- -- thetas: {thetas}")
-        #thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
+        # thetas_query = ','.join([el.split("|")[1] for el in thetas.split()])
 
         # 4. Customize start and rows
         if start is None:
@@ -667,7 +667,9 @@ class EWBSolrClient(SolrClient):
 
     def do_Q7(self,
               corpus_col: str,
-              string: str):
+              string: str,
+              start: str,
+              rows: str):
         """Executes query Q7.
 
         Parameters
@@ -692,9 +694,28 @@ class EWBSolrClient(SolrClient):
                 f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
             return
 
+        # 2. Get number of docs in the collection (it will be the maximum number of docs to be retireved) if rows is not specified
+        if rows is None:
+            q3 = self.querier.customize_Q3()
+            params = {k: v for k, v in q3.items() if k != 'q'}
+
+            sc, results = self.execute_query(
+                q=q3['q'], col_name=corpus_col, **params)
+
+            if sc != 200:
+                self.logger.error(
+                    f"-- -- Error executing query Q3. Aborting operation...")
+                return
+            rows = results.hits
+        if start is None:
+            start = str(0)
+
         # 2. Execute query
-        # TODO: check if 'title' works for all collections
-        q7 = self.querier.customize_Q7(title_field='title', string=string)
+        q7 = self.querier.customize_Q7(
+            title_field='title',
+            string=string,
+            start=start,
+            rows=rows)
         params = {k: v for k, v in q7.items() if k != 'q'}
 
         sc, results = self.execute_query(
@@ -708,14 +729,14 @@ class EWBSolrClient(SolrClient):
         return results.docs, sc
 
     def do_Q8(self,
-              model_col:str):
+              model_col: str):
         """Executes query Q8.
-        
+
         Parameters
         ----------
         model_col: str
             Name of the model collection
-        
+
         Returns
         -------
         json_object: dict
@@ -723,16 +744,28 @@ class EWBSolrClient(SolrClient):
         sc : int
             The status code of the response.
         """
-        
+
         # 1. Check that model_col is indeed a model collection
         model_colls, sc = self.list_model_collections()
         if model_col not in model_colls:
             self.logger.error(
                 f"-- -- {model_col} is not a model collection. Aborting operation...")
             return
-        
-        # 2. Execute query
-        q8= self.querier.customize_Q8()
+
+        # 2. Get number of topics in the collection
+        q3 = self.querier.customize_Q3()
+        params = {k: v for k, v in q3.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q3['q'], col_name=model_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q3. Aborting operation...")
+            return
+
+        # 3. Execute query
+        q8 = self.querier.customize_Q8(start='0', rows=results.hits)
         params = {k: v for k, v in q8.items() if k != 'q'}
 
         sc, results = self.execute_query(
@@ -742,5 +775,5 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q8. Aborting operation...")
             return
-        
+
         return results.docs, sc
