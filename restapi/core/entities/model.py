@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
 from core.entities.tm_model import TMmodel
+from typing import List
 
 
 class Model(object):
@@ -76,7 +77,7 @@ class Model(object):
             x[idx] += 1
         return x
 
-    def get_model_info(self) -> list[dict]:
+    def get_model_info(self) -> List[dict]:
         """It retrieves the information about a topic model and returns it as a list of dictionaries.
 
         Returns:
@@ -119,7 +120,7 @@ class Model(object):
 
         return json_lst
 
-    def get_model_info_update(self, action: str) -> list[dict]:
+    def get_model_info_update(self, action: str):
         """
         Retrieves the information from the model that goes to a corpus collection (document-topic proportions) and save it as an update in the format required by Solr.
 
@@ -141,7 +142,7 @@ class Model(object):
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
 
-        self.corpus_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
+        self.corpus_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0].title()
 
         thetas = sparse.load_npz(
             path_to_model.joinpath('TMmodel/thetas.npz'))
@@ -189,7 +190,7 @@ class Model(object):
 
         return new_list, self.corpus_name
 
-    def get_corpora_model_update(self, id: int, action: str) -> list[dict]:
+    def get_corpora_model_update(self, id: int, action: str) -> List[dict]:
         """Generates an update for the CORPUS_COL collection.
         Parameters
         ----------
