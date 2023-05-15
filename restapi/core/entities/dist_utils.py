@@ -1,13 +1,17 @@
 """
 Created on Thu Dec  4 18:11:29 2014
 
-@author: jarenas
+Author: Jerónimo Arenas-García
+Modified by Lorena Calvo-Bartolomé
+Modification date: 08/05/2021
 """
 
-import numpy as np
-from itertools import product
-from scipy import spatial
 import sys
+from itertools import product
+
+import numpy as np
+from scipy import spatial
+from sparse_dot_topn import awesome_cossim_topn
 
 def dd_hellinger(theta1,theta2):
     
@@ -136,3 +140,40 @@ def js_similarity(theta1,theta2):
         js_sim[idx[0],idx[1]] = 1 - 0.5 * (kl2(pq[0],av) + kl2(pq[1],av))
         
     return js_sim
+
+def bhatta(u, v):
+    """Calculates the Bhattacharyya distance between two discrete distributions.
+    
+    Parameters
+    ----------
+    u: array-like, dtype=float, shape=n
+        Discrete probability distribution.
+    v: array-like, dtype=float, shape=n
+        Discrete probability distribution.
+        
+    Returns: The Bhattacharyya distance between u and v.
+    """
+    return np.sum(np.sqrt(u*v))
+
+def bhatta_mat(x, lb, N):
+    """Calculates the Battacharyya distance between all pairs of rows in x.
+    
+    Parameters
+    ----------
+    x: csr_matrix, dtype=float, shape=(n, m)
+        Matrix of n rows of m-dimensional discrete probability distributions.
+    lb: float
+        Lower bound for the similarity measure.
+    N: int
+        Number of top similar items to return.
+        
+    Returns
+    -------
+    W: csr_matrix, dtype=float, shape=(n, N)
+        Matrix of n rows of N-dimensional vectors of the top N similar items.
+    """
+    x_sqrt = np.sqrt(x)
+    x_col = x_sqrt.T
+    W = awesome_cossim_topn(x_sqrt, x_col, N, lb)
+   
+    return W

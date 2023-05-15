@@ -14,6 +14,7 @@ Date: 27/03/2023
 import logging
 import os
 from urllib import parse
+from typing import List
 
 import requests
 
@@ -253,6 +254,15 @@ class SolrClient(object):
                             field_name: str,
                             field_type: str):
         """Adds a field of type 'field_type'  and name 'field_name' to the schema of the collection given by 'col_name'. 
+
+        Parameters
+        ----------
+        col_name: str
+            The name of the collection to add the field to.
+        field_name: str
+            The name of the field to add.
+        field_type: str
+            The type of the field to add.
         """
 
         headers_ = {"Content-Type": "application/json"}
@@ -383,7 +393,7 @@ class SolrClient(object):
     # ======================================================
 
     def index_batch(self,
-                    docs_batch: list[dict],
+                    docs_batch: List[dict],
                     col_name: str,
                     to_index: int,
                     index_from: int,
@@ -431,7 +441,7 @@ class SolrClient(object):
         return solr_resp.status_code
 
     def index_documents(self,
-                        json_docs: list[dict],
+                        json_docs: List[dict],
                         col_name: str,
                         batch_size: int = 100):
         """It takes a list of documents in JSON format and a Solr collection name, splits the list into batches, and sends a POST request to the Solr server to index the documents in batches. The method returns the status code of the response.
@@ -511,7 +521,7 @@ class SolrClient(object):
 
        # Send query to Solr
         solr_resp = self._do_request(type="get", url=url_)
-        
-        #self.logger.info(solr_resp.results.docs[0])
-        
+
+        # self.logger.info(solr_resp.results.docs[0])
+
         return solr_resp.status_code, solr_resp.results

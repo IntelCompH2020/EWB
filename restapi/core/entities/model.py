@@ -9,22 +9,24 @@ Author: Lorena Calvo-Bartolomé
 Date: 27/03/2023
 """
 
+
 import json
 import os
 import pathlib
-import random
+from typing import List
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import scipy.sparse as sparse
 from core.entities.tm_model import TMmodel
-from scipy.spatial.distance import pdist
-import core.entities.dist_utils as dist_utils 
+from core.entities.utils import sum_up_to
+from dask.diagnostics import ProgressBar
+from scipy import sparse
 
 
 class Model(object):
     """
-    A class to manage and hold all the information associated with a TMmodel.
+    A class to manage and hold all the information associated with a TMmodel so it can be indexed in Solr.
     """
 
     def __init__(self,
@@ -54,32 +56,11 @@ class Model(object):
 
         self.name = path_to_model.stem
         self.corpus_name = None
+        self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
+        self.alphas, self.betas, self.thetas, self.vocab, self.sims, self.coords = self.tmmodel.get_model_info_for_vis()
 
-    @staticmethod
-    def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
-        """It takes in a vector and a max_sum value and returns a NumPy array with the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
-
-        Parameters
-        ----------
-        vector: 
-            The vector to be adjusted.
-        max_sum: int
-            Number representing the maximum sum of the vector elements.
-
-        Returns:
-        --------
-        x: 
-            A NumPy array of the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
-        """
-        x = np.array(list(map(np.int_, vector*max_sum))).ravel()
-        pos_idx = list(np.where(x != 0)[0])
-        while np.sum(x) != max_sum:
-            idx = random.choice(pos_idx)
-            x[idx] += 1
-        return x
-
-    def get_model_info(self) -> list[dict]:
-        """It retrieves the information about a topic model and returns it as a list of dictionaries.
+    def get_model_info(self) -> List[dict]:
+        """It retrieves the information about a topic model as a list of dictionaries.
 
         Returns:
         --------
@@ -87,13 +68,13 @@ class Model(object):
             A list of dictionaries containing information about the topic model.
         """
 
-        # read tr config
+        # Read training config ('trainconfig.json')
         tr_config = self.path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
 
-        tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
-        df, vocab_id2w = tmmodel.to_dataframe()
+        # Get model information as dataframe, where each row is a topic
+        df, vocab_id2w = self.tmmodel.to_dataframe()
         df = df.apply(pd.Series.explode)
         df.reset_index(drop=True)
         df["id"] = [f"t{i}" for i in range(len(df))]
@@ -105,7 +86,7 @@ class Model(object):
 
         # Get betas string representation
         def get_tp_str_rpr(vector, max_sum, vocab_id2w):
-            vector = Model.sum_up_to(vector, max_sum)
+            vector = sum_up_to(vector, max_sum)
             rpr = ""
             for idx, val in enumerate(vector):
                 if val != 0:
@@ -116,12 +97,16 @@ class Model(object):
         df["betas"] = df["betas"].apply(
             lambda x: get_tp_str_rpr(x, 1000, vocab_id2w))
 
+        # TODO: Add coords
+        # Get topic coordinates in cluster space
+        # df["coors"] = self.get_topic_coordinates()
+
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
 
         return json_lst
 
-    def get_model_info_update(self, action: str) -> list[dict]:
+    def get_model_info_update(self, action: str) -> List[dict]:
         """
         Retrieves the information from the model that goes to a corpus collection (document-topic proportions) and save it as an update in the format required by Solr.
 
@@ -136,62 +121,183 @@ class Model(object):
             A list of dictionaries with thr document-topic proportions update.
         """
 
-        path_to_model = self.path_to_model
-
-        # Read tr configuration
-        tr_config = path_to_model.joinpath("trainconfig.json")
+        # Read training configuration
+        tr_config = self.path_to_model.joinpath("trainconfig.json")
         with pathlib.Path(tr_config).open('r', encoding='utf8') as fin:
             tr_config = json.load(fin)
 
-        self.corpus_name = tr_config["TrDtSet"].split("/")[-1].split(".")[0]
+        # Get corpus path and name of the collection
+        self.corpus = tr_config["TrDtSet"]
+        self.corpus_name = tr_config["TrDtSet"].split(
+            "/")[-1].split(".")[0].title()
 
-        thetas = sparse.load_npz(
-            path_to_model.joinpath('TMmodel/thetas.npz'))
-        thetas_dense = thetas.todense()
+        # Keys for dodument-topic proportions and similarity that will be used within the corpus collection
+        model_key = 'doctpc_' + self.name
+        sim_model_key = 'sim_' + self.name
 
         # Get ids of documents kept in the tr corpus
         if tr_config["trainer"] == "mallet":
-            ids_corpus = [line.rsplit(' 0 ')[0].strip() for line in open(
-                path_to_model.joinpath("corpus.txt"), encoding="utf-8").readlines()]
-        elif tr_config["trainer"] == "prodlda" or tr_config["trainer"] == "ctm":
-            print("TODO")
-            # TODO: Implement for neural models
+            def process_line(line):
+                id_ = line.rsplit(' 0 ')[0].strip()
+                id_ = int(id_.strip('"'))
+                return id_
+            with open(self.path_to_model.joinpath("corpus.txt"), encoding="utf-8") as file:
+                ids_corpus = [process_line(line) for line in file]
+        elif tr_config["trainer"] == "prodlda" or \
+                tr_config["trainer"] == "ctm":
+            ddf = dd.read_parquet(
+                self.path_to_model.joinpath("corpus.parquet"))
+            with ProgressBar():
+                ids_corpus = ddf["id"].compute(scheduler='processes')
+        else:
+            self._logger.error(
+                '-- -- The trainer used to train the model is not supported.')
 
-        # Get doc-topic representation
-        def get_doc_str_rpr(vector, max_sum):
-            vector = Model.sum_up_to(vector, max_sum)
-            rpr = ""
-            for idx, val in enumerate(vector):
-                if val != 0:
-                    rpr += "t" + str(idx) + "|" + str(val) + " "
-            rpr = rpr.rstrip()
-            return rpr
+        self._logger.info("Creating df with all ids...")
+        # Get df with all ids in the corpus
+        # ddf = dd.read_parquet(pathlib.Path(self.corpus))
+        # with ProgressBar():
+        #     df_orig_ids = ddf["id"].compute(scheduler='processes')
 
-        doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
-                       for row in range(len(thetas_dense))]
+        # Actual topic model's information only needs to be retrieved if action is "set"
+        if action == "set":
+            # Get doc-topic representation
+            def get_doc_str_rpr(vector, max_sum):
+                """Calculates the string representation of a document's topic proportions in the format 't0|100 t1|200 ...', so that the sum of the topic proportions is at most max_sum.
 
-        model_key = 'doctpc_' + self.name
-        df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr)),
-                          columns=['id', model_key])
+                Parameters
+                ----------
+                vector: numpy.array
+                    Array with the topic proportions of a document.
+                max_sum: int
+                    Maximum sum of the topic proportions.
 
+                Returns 
+                -------
+                rpr: str
+                    String representation of the document's topic proportions.
+                """
+                vector = sum_up_to(vector, max_sum)
+                rpr = ""
+                for idx, val in enumerate(vector):
+                    if val != 0:
+                        rpr += "t" + str(idx) + "|" + str(val) + " "
+                rpr = rpr.rstrip()
+                return rpr
+
+            self._logger.info("Attaining thetas rpr...")
+            thetas_dense = self.thetas.todense()
+            doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
+                           for row in range(len(thetas_dense))]
+
+            # Get similarities string representation
+            self._logger.info("Attaining sims rpr...")
+
+            def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
+                """
+                Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed.
+
+                Parameters
+                ----------
+                W: scipy.sparse.csr_matrix
+                    Sparse matrix with the similarities between each pair of documents in the corpus collection.
+                ids_corpus: List[str]
+                    List of ids of the documents in the corpus collection.
+
+                Returns:
+                --------
+                sims: List[str]
+                    List of string represenation of the top similarities between each pair of documents in the corpus collection.
+                """
+
+                # Get the non-zero elements indices
+                non_zero_indices = W.nonzero()
+
+                # Convert to a string
+                sim_str = \
+                    [' '.join([f"{ids_corpus[col]}|{W[row, col]}" for col in non_zero_indices[1]
+                              [non_zero_indices[0] == row]][1:]) for row in range(W.shape[0])]
+
+                return sim_str
+
+            W = sparse.load_npz(
+                self.path_to_model.joinpath('TMmodel/distances.npz'))
+            sim_rpr = get_doc_by_doc_sims(W, ids_corpus)
+            self._logger.info(
+                "Thetas and sims attained. Creating dataframe...")
+            # Save the information in a dataframe
+            df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
+                              columns=['id', model_key, sim_model_key])
+            self._logger.info("Merging dataframes...")
+            # df = pd.merge(df, df_orig_ids, on=['id'], how='outer').fillna("")
+
+        elif action == "remove":
+            doc_tpc_rpr = ["" for _ in range(len(ids_corpus))]
+            sim_rpr = doc_tpc_rpr
+            # Save the information in a dataframe
+            df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
+                              columns=['id', model_key, sim_model_key])
+
+        # Create json from dataframe
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
 
+        # Updating json in the format required by Solr
         new_list = []
         if action == 'set':
             for d in json_lst:
                 tpc_dict = {'set': d[model_key]}
                 d[model_key] = tpc_dict
+                # sim_dict = {'set': d[sim_model_key]}
+                # d[sim_model_key] = sim_dict
                 new_list.append(d)
         elif action == 'remove':
             for d in json_lst:
                 tpc_dict = {'set': []}
                 d[model_key] = tpc_dict
+                sim_dict = {'set': []}
+                d[sim_model_key] = sim_dict
                 new_list.append(d)
 
+        # TODO: Make two updates, one for the document-topic proportions and one for the document by document similarities. Remove the '' from the similarities update before indexing
+
+        # TODO: Caculate coodinates before
         return new_list, self.corpus_name
 
-    def get_corpora_model_update(self, id: int, action: str) -> list[dict]:
+    # def get_topic_coordinates(self):
+    #     """Get topic positions in the model as in PyLDAvis
+
+    #     Returns
+    #     -------
+    #     coords: list(tuple)
+    #         List of tuples with the coordinates of the topics in the model
+    #     """
+
+    #     ndocs = 10000
+    #     validDocs = np.sum(self.thetas.toarray(), axis=1) > 0
+    #     nValidDocs = np.sum(validDocs)
+    #     if ndocs > nValidDocs:
+    #         ndocs = nValidDocs
+    #     perm = np.sort(np.random.permutation(nValidDocs)[:ndocs])
+
+    #     # We consider all documents are equally important
+    #     doc_len = ndocs * [1]
+    #     vocabfreq = np.round(ndocs*(self.alphas.dot(self.betas))).astype(int)
+
+    #     # vis_data is of type PreparedData
+    #     vis_data = pyLDAvis.prepare(
+    #         topic_term_dists=self.betas,
+    #         doc_topic_dists=self.thetas[validDocs, ][perm, ].toarray(),
+    #         doc_lengths=doc_len,
+    #         vocab=self.vocab,
+    #         term_frequency=vocabfreq,
+    #         lambda_step=0.05,
+    #         sort_topics=False,
+    #         n_jobs=-1).to_dict()
+
+    #     return list(zip(*[vis_data['mdsDat']['x'], vis_data['mdsDat']['y']]))
+
+    def get_corpora_model_update(self, id: int, action: str):  # -> list[dict]:
         """Generates an update for the CORPUS_COL collection.
         Parameters
         ----------
@@ -207,28 +313,23 @@ class Model(object):
         """
 
         json_lst = [{"id": id,
-                    "fields": {action: 'doctpc_' + self.name},
+                    "fields": {action: ['doctpc_' + self.name,
+                                        'sim_' + self.name]},
                      "models": {action: self.name}
                      }]
 
         return json_lst
-    
-    def doc_by_doc_sims(self,
-                        thetas:np.ndarray,
-                        distance:str='js_similarity'):
-        """Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed."""
-        
-        
-        distances = pdist(thetas, getattr(dist_utils, distance))
-        
-        return
 
 
-""" if __name__ == '__main__':
-    model = Model("/Users/lbartolome/Documents/GitHub/EWB/data/Mallet-25")
-    #json_lst = model.get_model_info_update()
-    #print(json_lst[0])
-    df = model.get_model_info()
-    print(df[0].keys())
-    upt = model.get_corpora_model_update()
-    print(upt) """
+if __name__ == '__main__':
+    model = Model(pathlib.Path(
+        "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-25"))
+    json_lst = model.get_model_info_update(action='set')
+    # pos = model.get_topic_pos()
+    import pdb
+    pdb.set_trace()
+    # print(json_lst[0])
+    # df = model.get_model_info()
+    # print(df[0].keys())
+    # upt = model.get_corpora_model_update()
+    # print(upt)

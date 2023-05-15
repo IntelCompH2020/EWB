@@ -343,8 +343,17 @@
     </analyzer>
   </fieldType>
 
+  <fieldType name="VectorFloatField" class="solr.TextField" indexed="true" termOffsets="true"
+    stored="true" termPayloads="true" termPositions="true" termVectors="true"
+    storeOffsetsWithPositions="true">
+    <analyzer>
+      <tokenizer class="solr.WhitespaceTokenizerFactory" />
+      <filter class="solr.DelimitedPayloadTokenFilterFactory" encoder="float" />
+    </analyzer>
+  </fieldType>
+
   <field name="betas" type="VectorField" indexed="true" termOffsets="true" stored="true"
-    termPositions="true" termVectors="true" multiValued="true" />
+    termPositions="true" termVectors="true" multiValued="false" />
 
   <!-- <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >
       <analyzer>

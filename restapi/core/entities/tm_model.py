@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import scipy.sparse as sparse
+from sparse_dot_topn import awesome_cossim_topn
 import pandas as pd
 
 
@@ -188,14 +189,28 @@ class TMmodel(object):
         # We consider all documents are equally important
         doc_len = ndocs * [1]
         vocabfreq = np.round(ndocs*(self._alphas.dot(self._betas))).astype(int)
-        vis_data = pyLDAvis.prepare(self._betas, self._thetas[validDocs, ][perm, ].toarray(),
-                                    doc_len, self._vocab, vocabfreq, lambda_step=0.05,
-                                    sort_topics=False, n_jobs=-1)
+        vis_data = pyLDAvis.prepare(
+            self._betas,
+            self._thetas[validDocs, ][perm, ].toarray(),
+            doc_len,
+            self._vocab,
+            vocabfreq,
+            lambda_step=0.05,
+            sort_topics=False,
+            n_jobs=-1)
 
+        # Save html
         with self._TMfolder.joinpath("pyLDAvis.html").open("w") as f:
             pyLDAvis.save_html(vis_data, f)
         # TODO: Check substituting by "pyLDAvis.prepared_data_to_html"
         # self._modify_pyldavis_html(self._TMfolder.as_posix())
+
+        # Get coordinates of topics in the pyLDAvis visualization
+        vis_data_dict = vis_data.to_dict()
+        self._coords = list(
+            zip(*[vis_data_dict['mdsDat']['x'], vis_data_dict['mdsDat']['y']]))
+        with self._TMfolder.joinpath('tpc_coords.txt').open('w', encoding='utf8') as fout:
+            fout.write('\n'.join(self._coords))
 
         return
 
@@ -276,7 +291,7 @@ class TMmodel(object):
                 self._TMfolder.joinpath('thetas.npz'))
             self._ntopics = self._thetas.shape[1]
             # self._ndocs_active = np.array((self._thetas != 0).sum(0).tolist()[0])
-
+                        
     def _load_ndocs_active(self):
         if self._ndocs_active is None:
             self._ndocs_active = np.load(
@@ -399,12 +414,23 @@ class TMmodel(object):
                     self.logger.error(
                         '-- -- -- Coherence metric provided is not available.')
             self._topic_coherence = cohrs_aux
-            print(self._topic_coherence)
 
     def _load_topic_coherence(self):
         if self._topic_coherence is None:
             self._topic_coherence = np.load(
                 self._TMfolder.joinpath('topic_coherence.npy'))
+    
+    def _calculate_sims(self, topn=50, lb=0):
+        if self._thetas is None:
+            self._load_thetas()
+        thetas_sqrt = np.sqrt(self._thetas)
+        thetas_col = thetas_sqrt.T
+        self._sims = awesome_cossim_topn(thetas_sqrt, thetas_col, topn, lb)
+            
+    def _load_sims(self):
+        if self._sims is None:
+            self._sims = sparse.load_npz(
+                self._TMfolder.joinpath('distances.npz'))
 
     def _largest_indices(self, ary, n):
         """Returns the n largest indices from a numpy array."""
@@ -428,6 +454,16 @@ class TMmodel(object):
         self._load_vocab_dicts()
 
         return self._betas, self._thetas, self._vocab_w2id, self._vocab_id2w
+
+    def get_model_info_for_vis(self):
+        self._load_alphas()
+        self._load_betas()
+        self._load_thetas()
+        self._load_vocab()
+        self._load_sims()
+        self.load_tpc_coords()
+
+        return self._alphas, self._betas, self._thetas, self._vocab, self._sims, self._coords
 
     def get_tpc_word_descriptions(self, n_words=15, tfidf=True, tpc=None):
         """returns the chemical description of topics
@@ -522,6 +558,11 @@ class TMmodel(object):
         if self._tpc_labels is None:
             with self._TMfolder.joinpath('tpc_labels.txt').open('r', encoding='utf8') as fin:
                 self._tpc_labels = [el.strip() for el in fin.readlines()]
+                
+    def load_tpc_coords(self):
+        if self._coords is None:
+            with self._TMfolder.joinpath('tpc_coords.txt').open('r', encoding='utf8') as fin:
+                self._coords = [el.strip() for el in fin.readlines()]
 
     def get_alphas(self):
         self._load_alphas()

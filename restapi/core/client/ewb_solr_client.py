@@ -10,9 +10,9 @@ import logging
 import pathlib
 
 from core.client.base.solr_client import SolrClient
-from core.entities.queries import Queries
 from core.entities.corpus import Corpus
 from core.entities.model import Model
+from core.entities.queries import Queries
 
 
 class EWBSolrClient(SolrClient):
@@ -265,12 +265,17 @@ class EWBSolrClient(SolrClient):
         self.logger.info(
             f"-- -- Indexing of model information of {model_name} info in {self.corpus_col} completed.")
 
-        # 5. Modify schema in corpus collection to add field for the doc-tpc distribution associated with the model being indexed
+        # 5. Modify schema in corpus collection to add field for the doc-tpc distribution and the similarities associated with the model being indexed
         model_key = 'doctpc_' + model_name
+        sim_model_key = 'sim_' + model_name
         self.logger.info(
             f"-- -- Adding field {model_key} in {corpus_name} collection")
         _, err = self.add_field_to_schema(
             col_name=corpus_name, field_name=model_key, field_type='VectorField')
+        self.logger.info(
+            f"-- -- Adding field {sim_model_key} in {corpus_name} collection")
+        _, err = self.add_field_to_schema(
+            col_name=corpus_name, field_name=sim_model_key, field_type='VectorFloatField')
 
         # 6. Index doc-tpc information in corpus collection
         self.logger.info(
@@ -347,12 +352,17 @@ class EWBSolrClient(SolrClient):
             f"-- -- Deleting model information from {corpus_name} collection")
         self.index_documents(json_docs, corpus_name, self.batch_size)
 
-        # 6. Modify schema in corpus collection to delete field for the doc-tpc distribution associated with the model being indexed
+        # 6. Modify schema in corpus collection to delete field for the doc-tpc distribution and similarities associated with the model being indexed
         model_key = 'doctpc_' + model_name
+        sim_model_key = 'sim_' + model_name
         self.logger.info(
             f"-- -- Deleting field {model_key} in {corpus_name} collection")
         _, err = self.delete_field_from_schema(
             col_name=corpus_name, field_name=model_key)
+        self.logger.info(
+            f"-- -- Deleting field {sim_model_key} in {corpus_name} collection")
+        _, err = self.delete_field_from_schema(
+            col_name=corpus_name, field_name=sim_model_key)
 
         return
 

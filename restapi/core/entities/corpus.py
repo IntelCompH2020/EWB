@@ -10,7 +10,7 @@ import json
 import dask.dataframe as dd
 from core.entities.utils import convert_datetime_to_strftime, parseTimeINSTANT
 from dask.diagnostics import ProgressBar
-
+from typing import List
 
 class Corpus(object):
     """
@@ -43,7 +43,7 @@ class Corpus(object):
         self.name = path_to_logical.stem
         self.fields = None
 
-    def get_docs_raw_info(self) -> list[dict]:
+    def get_docs_raw_info(self) -> List[dict]:
         """Extracts the information contained in the parquet file associated to the logical corpus and transforms into a list of dictionaries.
 
         Returns:
@@ -88,7 +88,7 @@ class Corpus(object):
 
         return json_lst
 
-    def get_corpora_update(self, id: int) -> list[dict]:
+    def get_corpora_update(self, id: int) -> List[dict]:
 
         fields_dict = [{"id": id,
                         "corpus_name": self.name,
