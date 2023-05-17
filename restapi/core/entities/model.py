@@ -81,6 +81,13 @@ class Model(object):
         cols = df.columns.tolist()
         cols = cols[-1:] + cols[:-1]
         df = df[cols]
+        
+        # Get words in each topic
+        def get_tp_words(vector, max_sum, vocab_id2w):
+            vector = sum_up_to(vector, max_sum)
+            return ", ".join([vocab_id2w[str(idx)] for idx, val in enumerate(vector) if val != 0])
+        df["vocab"] = df["betas"].apply(
+            lambda x: get_tp_words(x, 1000, vocab_id2w))
 
         # Get betas string representation
         def get_tp_str_rpr(vector, max_sum, vocab_id2w):
@@ -88,10 +95,11 @@ class Model(object):
             rpr = ""
             for idx, val in enumerate(vector):
                 if val != 0:
-                    rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
+                    rpr += "w" + str(idx) + "|" + str(val) + " "
+                    #rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
             rpr = rpr.rstrip()
             return rpr
-
+        
         df["betas"] = df["betas"].apply(
             lambda x: get_tp_str_rpr(x, 1000, vocab_id2w))
 
@@ -283,10 +291,10 @@ class Model(object):
 if __name__ == '__main__':
     model = Model(pathlib.Path(
         "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-10"))
-    json_lst = model.get_model_info_update(action='set')
+    #json_lst = model.get_model_info_update(action='set')
     # pos = model.get_topic_pos()
     # print(json_lst[0])
-    #df = model.get_model_info()
+    df = model.get_model_info()
     # print(df[0].keys())
     # upt = model.get_corpora_model_update()
     # print(upt)

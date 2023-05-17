@@ -12,3 +12,4 @@ cons_format = %%(levelname)-8s | %%(message)s
 batch_size=100
 corpus_col=corpora
 no_meta_fields=rawtext,lemmas,all_lemmas,_version_
+max_sum=1000

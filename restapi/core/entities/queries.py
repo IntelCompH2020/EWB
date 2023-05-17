@@ -62,7 +62,6 @@ class Queries(object):
         # ################################################################
         # # Retrieve documents that have a high semantic relationship with
         # # a selected document
-        # q={!payload_check f=doctpc_Mallet-25 payloads="5" op="gte"}t5
         # ---------------------------------------------------------------
         # Previous steps:
         # ---------------------------------------------------------------
@@ -140,19 +139,53 @@ class Queries(object):
         # ================================================================
         self.Q10 = {
             'q': '*:*',
-            'fl': 'id,betas,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
+            'fl': 'id,betas,vocab,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
             'start': '{}',
             'rows': '{}'
         }
-
+        
         # ================================================================
-        # # Q11: getMostCorrelatedTopics
+        # # Q12: getBetasTopicById  ##################################################################
+        # # Get word distribution of a selected topic in a
+        # # model collection
+        # http://localhost:8983/solr/{col}/select?fl=betas&q=id:t{id}
+        # ================================================================
+        self.Q11 = {
+            'q': 'id:t{}',
+            'fl': 'betas',
+        }
+        
+        # ================================================================
+        # # Q13: getMostCorrelatedTopics
         # ################################################################
         # # Get the most correlated topics to a given one in a selected
         # model
         # ================================================================
-        # Do like Q5 but for betas
-        # ver si funciona el plugin bien al ser el id una palabra
+        self.Q12 = {
+            'q': "{{!vp f=betas vector=\"{}\"}}",
+            'fl': "id,score",
+            'start': '{}',
+            'rows': '{}'
+        }
+        
+        # ================================================================
+        # # Q14: getPairsOfDocsWithHighSim
+        # ################################################################
+        # # Get pairs of documents with a semantic similarity larger than a threshold
+        # ================================================================
+        self.Q13 = {
+        }
+        
+        # ================================================================
+        # # Q15: getDocsSimilarToFreeText
+        # ################################################################
+        # # Get documents that are semantically similar to a free text
+        # according to a given model
+        # ================================================================
+        self.Q13 = {
+        }
+        
+        
 
     def customize_Q1(self,
                      id: str,
@@ -421,3 +454,53 @@ class Queries(object):
         }
         
         return custom_q10
+    
+    def customize_Q11(self,
+                      topic_id: str) -> dict:
+        """Customizes query Q11 'getBetasTopicById'.
+
+        Parameters
+        ----------
+        topic_id: str
+            Topic id.
+
+        Returns
+        -------
+        custom_q11: dict
+            Customized query Q11.
+        """
+
+        custom_q11 = {
+            'q': self.Q11['q'].format(topic_id),
+            'fl': self.Q11['fl']
+        }
+        return custom_q11
+    
+    def customize_Q12(self,
+                     betas: str,
+                     start: str,
+                     rows: str) -> dict:
+        """Customizes query Q12 'getMostCorrelatedTopics'
+
+        Parameters
+        ----------
+        betas: str
+            Word distribution of the selected topic.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+
+        Returns
+        -------
+        custom_q11: dict
+            Customized query q11.
+        """
+
+        custom_q12 = {
+            'q': self.Q12['q'].format(betas),
+            'fl': self.Q12['fl'],
+            'start': self.Q12['start'].format(start),
+            'rows': self.Q12['rows'].format(rows),
+        }
+        return custom_q12

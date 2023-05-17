@@ -28,6 +28,7 @@ class EWBSolrClient(SolrClient):
         self.batch_size = int(cf.get('restapi', 'batch_size'))
         self.corpus_col = cf.get('restapi', 'corpus_col')
         self.no_meta_fields = cf.get('restapi', 'no_meta_fields').split(",")
+        self.max_sum = int(cf.get('restapi', 'max_sum'))
 
         # Create Queries object for managing queries
         self.querier = Queries()
@@ -218,6 +219,51 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error deleting corpus from {self.corpus_col}")
         return
 
+    def check_is_corpus(self, corpus_col):
+        """Checks if the collection given by 'corpus_col' is a corpus collection.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the collection to be checked.
+
+        Returns
+        -------
+        is_corpus: bool
+            True if the collection is a corpus collection, False otherwise.
+        """
+
+        corpus_colls, sc = self.list_corpus_collections()
+        if corpus_col not in corpus_colls:
+            self.logger.error(
+                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+            return False
+
+        return True
+
+    def check_corpus_has_model(self, corpus_col, model_name):
+        """Checks if the collection given by 'corpus_col' has a model with name 'model_name'.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the collection to be checked.
+        model_name : str
+            Name of the model to be checked.
+
+        Returns
+        -------
+        has_model: bool
+            True if the collection has the model, False otherwise.
+        """
+
+        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
+        if 'doctpc_' + model_name not in corpus_fields:
+            self.logger.error(
+                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+            return False
+        return True
+
     # ======================================================
     # MODEL-RELATED OPERATIONS
     # ======================================================
@@ -366,9 +412,66 @@ class EWBSolrClient(SolrClient):
 
         return
 
+    def check_is_model(self, model_col):
+        """Checks if the model_col is a model collection. If not, it aborts the operation.
+
+        Parameters
+        ----------
+        model_col : str
+            Name of the model collection.
+
+        Returns
+        -------
+        is_model : bool
+            True if the model_col is a model collection, False otherwise.
+        """
+
+        model_colls, sc = self.list_model_collections()
+        if model_col not in model_colls:
+            self.logger.error(
+                f"-- -- {model_col} is not a model collection. Aborting operation...")
+            return False
+        return True
+
+    # ======================================================
+    # AUXILIARY FUNCTIONS
+    # ======================================================
+    def custom_start_and_rows(self, start, rows, col):
+        """Checks if start and rows are None. If so, it returns the number of documents in the collection as the value for rows and 0 as the value for start.
+
+        Parameters
+        ----------
+        start : str
+            Start parameter of the query.
+        rows : str
+            Rows parameter of the query.
+        col : str
+            Name of the collection.
+
+        Returns
+        -------
+        start : str
+            Final start parameter of the query.
+        rows : str
+            Final rows parameter of the query.
+        """
+        if start is None:
+            start = str(0)
+        if rows is None:
+            numFound_dict, sc = self.do_Q3(col)
+            rows = str(numFound_dict['ndocs'])
+            
+            if sc != 200:
+                self.logger.error(
+                    f"-- -- Error executing query Q3. Aborting operation...")
+                return
+
+        return start, rows
+
     # ======================================================
     # QUERIES
     # ======================================================
+
     def do_Q1(self,
               corpus_col: str,
               doc_id: str,
@@ -397,17 +500,11 @@ class EWBSolrClient(SolrClient):
         model_name = model_name.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
-        if 'doctpc_' + model_name not in corpus_fields:
-            self.logger.error(
-                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+        if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
         # 3. Execute query
@@ -444,10 +541,7 @@ class EWBSolrClient(SolrClient):
         corpus_col = corpus_col.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Execute query (to self.corpus_col)
@@ -486,14 +580,18 @@ class EWBSolrClient(SolrClient):
         # 0. Convert collection name to lowercase
         col = col.lower()
 
-        # 1. Execute query
+        # 1. Check that col is either a corpus or a model collection
+        if not self.check_is_corpus(col) and not self.check_is_model(col):
+            return
+
+        # 2. Execute query
         q3 = self.querier.customize_Q3()
         params = {k: v for k, v in q3.items() if k != 'q'}
 
         sc, results = self.execute_query(
             q=q3['q'], col_name=col, **params)
 
-        # 2. Filter results
+        # 3. Filter results
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q3. Aborting operation...")
@@ -538,25 +636,15 @@ class EWBSolrClient(SolrClient):
         model_name = model_name.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
-        if 'doctpc_' + model_name not in corpus_fields:
-            self.logger.error(
-                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+        if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
         # 3. Customize start and rows
-        if start is None:
-            start = str(0)
-        if rows is None:
-            numFound_dict, sc = self.do_Q3(corpus_col)
-            rows = str(numFound_dict['ndocs'])
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
 
         # 4. Execute query
         q4 = self.querier.customize_Q4(
@@ -607,17 +695,11 @@ class EWBSolrClient(SolrClient):
         model_name = model_name.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
-        if 'doctpc_' + model_name not in corpus_fields:
-            self.logger.error(
-                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+        if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
         # 3. Execute Q1 to get thetas of document given by doc_id
@@ -626,11 +708,7 @@ class EWBSolrClient(SolrClient):
         thetas = thetas_dict['thetas']
 
         # 4. Customize start and rows
-        if start is None:
-            start = str(0)
-        if rows is None:
-            numFound_dict, sc = self.do_Q3(corpus_col)
-            rows = str(numFound_dict['ndocs'])
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
 
         # 5. Execute query
         q5 = self.querier.customize_Q5(
@@ -645,6 +723,10 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q5. Aborting operation...")
             return
+
+        # 6. Normalize scores
+        for el in results.docs:
+            el['score'] *= (100/self.max_sum)
 
         return results.docs, sc
 
@@ -672,10 +754,7 @@ class EWBSolrClient(SolrClient):
         corpus_col = corpus_col.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Get meta fields
@@ -722,10 +801,7 @@ class EWBSolrClient(SolrClient):
         corpus_col = corpus_col.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Get number of docs in the collection (it will be the maximum number of docs to be retireved) if rows is not specified
@@ -789,25 +865,13 @@ class EWBSolrClient(SolrClient):
         model_col = model_col.lower()
 
         # 1. Check that model_col is indeed a model collection
-        model_colls, sc = self.list_model_collections()
-        if model_col not in model_colls:
-            self.logger.error(
-                f"-- -- {model_col} is not a model collection. Aborting operation...")
+        if not self.check_is_model(model_col):
             return
 
         # 3. Customize start and rows
-        if start is None:
-            start = str(0)
-        if rows is None:
-            numFound_dict, sc = self.do_Q3(model_col)
-            rows = str(numFound_dict['ndocs'])
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
 
-        if sc != 200:
-            self.logger.error(
-                f"-- -- Error executing query Q3. Aborting operation...")
-            return
-
-        # 3. Execute query
+        # 4. Execute query
         q8 = self.querier.customize_Q8(start=start, rows=rows)
         params = {k: v for k, v in q8.items() if k != 'q'}
 
@@ -855,25 +919,15 @@ class EWBSolrClient(SolrClient):
         model_name = model_name.lower()
 
         # 1. Check that corpus_col is indeed a corpus collection
-        corpus_colls, sc = self.list_corpus_collections()
-        if corpus_col not in corpus_colls:
-            self.logger.error(
-                f"-- -- {corpus_col} is not a corpus collection. Aborting operation...")
+        if not self.check_is_corpus(corpus_col):
             return
 
         # 2. Check that corpus_col has the model_name field
-        corpus_fields, sc = self.get_corpus_coll_fields(corpus_col)
-        if 'doctpc_' + model_name not in corpus_fields:
-            self.logger.error(
-                f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
+        if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
         # 3. Customize start and rows
-        if start is None:
-            start = str(0)
-        if rows is None:
-            numFound_dict, sc = self.do_Q3(corpus_col)
-            rows = str(numFound_dict['ndocs'])
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
 
         # 5. Execute query
         q9 = self.querier.customize_Q9(
@@ -892,13 +946,13 @@ class EWBSolrClient(SolrClient):
             return
 
         return results.docs, sc
-    
+
     def do_Q10(self,
                model_col: str,
                start: str,
                rows: str):
         """Executes query Q10.
-        
+
         Parameters
         ----------
         model_col: str
@@ -907,7 +961,7 @@ class EWBSolrClient(SolrClient):
             Index of the first document to be retrieved
         rows: str
             Number of documents to be retrieved
-        
+
         Returns
         -------
         json_object: dict
@@ -915,30 +969,18 @@ class EWBSolrClient(SolrClient):
         sc : int
             The status code of the response.
         """
-        
+
         # 0. Convert model name to lowercase
         model_col = model_col.lower()
 
         # 1. Check that model_col is indeed a model collection
-        model_colls, sc = self.list_model_collections()
-        if model_col not in model_colls:
-            self.logger.error(
-                f"-- -- {model_col} is not a model collection. Aborting operation...")
+        if not self.check_is_model(model_col):
             return
 
         # 3. Customize start and rows
-        if start is None:
-            start = str(0)
-        if rows is None:
-            numFound_dict, sc = self.do_Q3(model_col)
-            rows = str(numFound_dict['ndocs'])
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
 
-        if sc != 200:
-            self.logger.error(
-                f"-- -- Error executing query Q3. Aborting operation...")
-            return
-
-        # 3. Execute query
+        # 4. Execute query
         q10 = self.querier.customize_Q10(start=start, rows=rows)
         params = {k: v for k, v in q10.items() if k != 'q'}
 
@@ -951,5 +993,102 @@ class EWBSolrClient(SolrClient):
             return
 
         return results.docs, sc
+
+    def do_Q11(self,
+               model_col: str,
+               topic_id: str):
+        """Executes query Q11.
+
+        Parameters
+        ----------
+        model_col : str
+            Name of the model collection.
+        topic_id : str
+            ID of the topic to be retrieved.
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.  
+        """
+
+        # 0. Convert corpus and model names to lowercase
+        model_col = model_col.lower()
+
+        # 1. Check that model_col is indeed a model collection
+        if not self.check_is_model(model_col):
+            return
+
+        # 3. Execute query
+        q11 = self.querier.customize_Q11(
+            topic_id=topic_id)
+        params = {k: v for k, v in q11.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q11['q'], col_name=model_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q11. Aborting operation...")
+            return
+
+        return {'betas': results.docs[0]['betas']}, sc
+
+    def do_Q12(self,
+               model_col: str,
+               topic_id: str,
+               start: str,
+               rows: str):
+        """Executes query Q12.
+
+        Parameters
+        ----------
+        model_col: str
+           Name of the model to be used for the retrieval of most correlated topics to a given topic
+        topic_id: str
+            ID of the topic whose most correlated topics will be retrieved
+        start: str
+            Index of the first document to be retrieved
+        rows: str
+            Number of documents to be retrieved
+        """
+
+        # 0. Convert model name to lowercase
+        model_col = model_col.lower()
+
+        # 1. Check that model_col is indeed a model collection
+        if not self.check_is_model(model_col):
+            return
+
+        # 3. Customize start and rows
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
+
+        # 3. Execute Q11 to get betas of topic given by topic_id
+        betas_dict, sc = self.do_Q11(model_col=model_col, topic_id=topic_id)
+        betas = betas_dict['betas']
+
+        # 4. Customize start and rows
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
+
+        # 5. Execute query
+        q12 = self.querier.customize_Q12(
+            betas=betas,
+            start=start,
+            rows=rows)
+        params = {k: v for k, v in q12.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q12['q'], col_name=model_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q5. Aborting operation...")
+            return
         
-        
+        # 6. Normalize scores
+        for el in results.docs:
+            el['score'] *= (100/self.max_sum)
+
+        return results.docs, sc

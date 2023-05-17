@@ -107,6 +107,22 @@ q10_parser.add_argument(
 q10_parser.add_argument(
     'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
+q11_parser = reqparse.RequestParser()
+q11_parser.add_argument(
+    'model_collection', help='Name of the model collection', required=True)
+q11_parser.add_argument(
+    'topic_id', help='ID of the topic whose whose word-topic distribution is to be retrieved', required=False)
+
+q12_parser = reqparse.RequestParser()
+q12_parser.add_argument(
+    'model_collection', help='Name of the model collection', required=True)
+q12_parser.add_argument(
+    'topic_id', help='ID of the topic whose whose word-topic distribution is to be retrieved', required=False)
+q12_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q12_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
 
 @api.route('/getThetasDocById/')
 class get_thetas_doc_by_id(Resource):
@@ -221,6 +237,7 @@ class getTopicsLabels(Resource):
                         start=start,
                         rows=rows)
 
+
 @api.route('/getTopicTopDocs/')
 class getTopicTopDocs(Resource):
     @api.doc(parser=q9_parser)
@@ -237,7 +254,8 @@ class getTopicTopDocs(Resource):
                         topic_id=topic_id,
                         start=start,
                         rows=rows)
-        
+
+
 @api.route('/getModelInfo/')
 class getModelInfo(Resource):
     @api.doc(parser=q10_parser)
@@ -248,5 +266,33 @@ class getModelInfo(Resource):
         rows = args['rows']
 
         return sc.do_Q10(model_col=model_collection,
-                        start=start,
-                        rows=rows)
+                         start=start,
+                         rows=rows)
+
+
+@api.route('/getBetasTopicById/')
+class getBetasTopicById(Resource):
+    @api.doc(parser=q11_parser)
+    def get(self):
+        args = q11_parser.parse_args()
+        model_collection = args['model_collection']
+        topic_id = args['topic_id']
+
+        return sc.do_Q11(model_col=model_collection,
+                         topic_id=topic_id)
+
+
+@api.route('/getMostCorrelatedTopics/')
+class getMostCorrelatedTopics(Resource):
+    @api.doc(parser=q12_parser)
+    def get(self):
+        args = q12_parser.parse_args()
+        model_collection = args['model_collection']
+        topic_id = args['topic_id']
+        start = args['start']
+        rows = args['rows']
+
+        return sc.do_Q12(model_col=model_collection,
+                         topic_id=topic_id,
+                         start=start,
+                         rows=rows)
