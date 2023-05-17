@@ -123,15 +123,13 @@ class Queries(object):
         # # Q9: getTopicTopDocs
         # ################################################################
         # # Get the top documents for a given topic in a model collection
-        # ---------------------------------------------------------------
-        # Previous steps:
-        # ---------------------------------------------------------------
-        # 1. Get average topic distribution of the model
-        # 2. Use the average as threshold to get the top documents
-        # 3. Execute Q9
+        # http://localhost:8983/solr/cordis/select?indent=true&q.op=OR&q=%7B!term%20f%3D{model}%7Dt{topic_id}&useParams=
         # ================================================================
         self.Q9 = {
-            
+            'q': "{{!term f=doctpc_{}}}t{}",
+            'fl': 'id,doctpc_{}',
+            'start': '{}',
+            'rows': '{}'
         }
 
         # ================================================================
@@ -141,7 +139,10 @@ class Queries(object):
         # top docs, etc.) associated to each topic in a model collection
         # ================================================================
         self.Q10 = {
-            
+            'q': '*:*',
+            'fl': 'id,betas,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
+            'start': '{}',
+            'rows': '{}'
         }
 
         # ================================================================
@@ -152,13 +153,6 @@ class Queries(object):
         # ================================================================
         # Do like Q5 but for betas
         # ver si funciona el plugin bien al ser el id una palabra
-        
-        # ================================================================
-        # # Q12: getMostSimilarDocs
-        # ################################################################
-        # # Get the most similar documents to a given one in a selected
-        # corpus according to a given model
-        # ================================================================
 
     def customize_Q1(self,
                      id: str,
@@ -368,3 +362,62 @@ class Queries(object):
         }
 
         return custom_q8
+    
+    def customize_Q9(self,
+                     model_name: str,
+                     topic_id: str,
+                     start: str,
+                     rows: str) -> dict:
+        """Customizes query Q9 'getDocsByTopic'
+        
+        Parameters
+        ----------
+        model_name: str
+            Name of the topic model whose topic distribution is going to be used for retreving the top documents for the topic given by 'topic'.
+        topic_id: str
+            Topic number.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+
+        Returns
+        -------
+        custom_q9: dict
+            Customized query Q9.
+        """
+        
+        custom_q9 = {
+            'q': self.Q9['q'].format(model_name, topic_id),
+            'fl': self.Q9['fl'].format(model_name),
+            'start': self.Q9['start'].format(start),
+            'rows': self.Q9['rows'].format(rows),
+        }
+        
+        return custom_q9
+    
+    def customize_Q10(self,
+                      start: str,
+                      rows: str) -> dict:
+        """Customizes query Q10 'getModelInfo'
+        
+        Parameters
+        ----------
+        start: str
+            Start value.
+        rows: str
+
+        Returns
+        -------
+        custom_q10: dict
+            Customized query Q10.
+        """
+        
+        custom_q10 = {
+            'q': self.Q10['q'],
+            'fl': self.Q10['fl'],
+            'start': self.Q10['start'].format(start),
+            'rows': self.Q10['rows'].format(rows),
+        }
+        
+        return custom_q10

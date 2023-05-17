@@ -82,6 +82,30 @@ q7_parser.add_argument(
 q8_parser = reqparse.RequestParser()
 q8_parser.add_argument(
     'model_collection', help='Name of the model collection', required=True)
+q8_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q8_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
+q9_parser = reqparse.RequestParser()
+q9_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q9_parser.add_argument(
+    'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution', required=True)
+q9_parser.add_argument(
+    'topic_id', help="ID of the topic whose top documents according to 'model_name' are being searched", required=True)
+q9_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q9_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
+q10_parser = reqparse.RequestParser()
+q10_parser.add_argument(
+    'model_collection', help='Name of the model collection', required=True)
+q10_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q10_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
 
 @api.route('/getThetasDocById/')
@@ -190,5 +214,39 @@ class getTopicsLabels(Resource):
     def get(self):
         args = q8_parser.parse_args()
         model_collection = args['model_collection']
+        start = args['start']
+        rows = args['rows']
 
-        return sc.do_Q8(model_col=model_collection)
+        return sc.do_Q8(model_col=model_collection,
+                        start=start,
+                        rows=rows)
+
+@api.route('/getTopicTopDocs/')
+class getTopicTopDocs(Resource):
+    @api.doc(parser=q9_parser)
+    def get(self):
+        args = q9_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        model_name = args['model_name']
+        topic_id = args['topic_id']
+        start = args['start']
+        rows = args['rows']
+
+        return sc.do_Q9(corpus_col=corpus_collection,
+                        model_name=model_name,
+                        topic_id=topic_id,
+                        start=start,
+                        rows=rows)
+        
+@api.route('/getModelInfo/')
+class getModelInfo(Resource):
+    @api.doc(parser=q10_parser)
+    def get(self):
+        args = q10_parser.parse_args()
+        model_collection = args['model_collection']
+        start = args['start']
+        rows = args['rows']
+
+        return sc.do_Q10(model_col=model_collection,
+                        start=start,
+                        rows=rows)
