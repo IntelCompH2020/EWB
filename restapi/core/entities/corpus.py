@@ -6,11 +6,12 @@ Date: 27/03/2023
 """
 
 import json
+from typing import List
 
 import dask.dataframe as dd
 from core.entities.utils import convert_datetime_to_strftime, parseTimeINSTANT
 from dask.diagnostics import ProgressBar
-from typing import List
+
 
 class Corpus(object):
     """
@@ -40,7 +41,7 @@ class Corpus(object):
         with path_to_logical.open('r', encoding='utf8') as fin:
             self._logical_corpus = json.load(fin)
 
-        self.name = path_to_logical.stem
+        self.name = path_to_logical.stem.lower()
         self.fields = None
 
     def get_docs_raw_info(self) -> List[dict]:

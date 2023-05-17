@@ -47,7 +47,7 @@ class EWBSolrClient(SolrClient):
 
         # 1. Get full path and stem of the logical corpus
         corpus_to_index = pathlib.Path(corpus_logical_path)
-        corpus_logical_name = corpus_to_index.stem
+        corpus_logical_name = corpus_to_index.stem.lower()
 
         # 2. Create collection
         corpus, err = self.create_collection(col_name=corpus_logical_name)
@@ -184,7 +184,7 @@ class EWBSolrClient(SolrClient):
         """
 
         # 1. Get stem of the logical corpus
-        corpus_logical_name = pathlib.Path(corpus_logical_path).stem
+        corpus_logical_name = pathlib.Path(corpus_logical_path).stem.lower()
 
         # 2. Delete corpus collection
         _, sc = self.delete_collection(col_name=corpus_logical_name)
@@ -233,7 +233,7 @@ class EWBSolrClient(SolrClient):
 
         # 1. Get stem of the model folder
         model_to_index = pathlib.Path(model_path)
-        model_name = pathlib.Path(model_to_index).stem
+        model_name = pathlib.Path(model_to_index).stem.lower()
 
         # 2. Create collection
         _, err = self.create_collection(col_name=model_name)
@@ -315,7 +315,7 @@ class EWBSolrClient(SolrClient):
 
         # 1. Get stem of the model folder
         model_to_index = pathlib.Path(model_path)
-        model_name = pathlib.Path(model_to_index).stem
+        model_name = pathlib.Path(model_to_index).stem.lower()
 
         # 2. Delete model collection
         _, sc = self.delete_collection(col_name=model_name)

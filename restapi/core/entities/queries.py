@@ -123,7 +123,16 @@ class Queries(object):
         # # Q9: getTopicTopDocs
         # ################################################################
         # # Get the top documents for a given topic in a model collection
+        # ---------------------------------------------------------------
+        # Previous steps:
+        # ---------------------------------------------------------------
+        # 1. Get average topic distribution of the model
+        # 2. Use the average as threshold to get the top documents
+        # 3. Execute Q9
         # ================================================================
+        self.Q9 = {
+            
+        }
 
         # ================================================================
         # # Q10: getModelInfo
@@ -131,6 +140,9 @@ class Queries(object):
         # # Get the information (chemical description, label, statistics,
         # top docs, etc.) associated to each topic in a model collection
         # ================================================================
+        self.Q10 = {
+            
+        }
 
         # ================================================================
         # # Q11: getMostCorrelatedTopics
@@ -138,7 +150,9 @@ class Queries(object):
         # # Get the most correlated topics to a given one in a selected
         # model
         # ================================================================
-
+        # Do like Q5 but for betas
+        # ver si funciona el plugin bien al ser el id una palabra
+        
         # ================================================================
         # # Q12: getMostSimilarDocs
         # ################################################################

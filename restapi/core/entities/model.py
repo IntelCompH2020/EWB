@@ -16,12 +16,10 @@ import pathlib
 from typing import List
 
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 from core.entities.tm_model import TMmodel
 from core.entities.utils import sum_up_to
 from dask.diagnostics import ProgressBar
-from scipy import sparse
 
 
 class Model(object):
@@ -54,7 +52,7 @@ class Model(object):
                 '-- -- The provided model path does not exist.')
         self.path_to_model = path_to_model
 
-        self.name = path_to_model.stem
+        self.name = path_to_model.stem.lower()
         self.corpus_name = None
         self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
         self.alphas, self.betas, self.thetas, self.vocab, self.sims, self.coords = self.tmmodel.get_model_info_for_vis()
@@ -97,10 +95,9 @@ class Model(object):
         df["betas"] = df["betas"].apply(
             lambda x: get_tp_str_rpr(x, 1000, vocab_id2w))
 
-        # TODO: Add coords
         # Get topic coordinates in cluster space
-        # df["coors"] = self.get_topic_coordinates()
-
+        df["coords"] = self.coords
+        
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
 
@@ -129,7 +126,7 @@ class Model(object):
         # Get corpus path and name of the collection
         self.corpus = tr_config["TrDtSet"]
         self.corpus_name = tr_config["TrDtSet"].split(
-            "/")[-1].split(".")[0].title()
+            "/")[-1].split(".")[0].lower()
 
         # Keys for dodument-topic proportions and similarity that will be used within the corpus collection
         model_key = 'doctpc_' + self.name
@@ -220,15 +217,13 @@ class Model(object):
 
                 return sim_str
 
-            W = sparse.load_npz(
-                self.path_to_model.joinpath('TMmodel/distances.npz'))
-            sim_rpr = get_doc_by_doc_sims(W, ids_corpus)
+            sim_rpr = get_doc_by_doc_sims(self.sims, ids_corpus)
             self._logger.info(
                 "Thetas and sims attained. Creating dataframe...")
             # Save the information in a dataframe
             df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
                               columns=['id', model_key, sim_model_key])
-            self._logger.info("Merging dataframes...")
+            #self._logger.info("Merging dataframes...")
             # df = pd.merge(df, df_orig_ids, on=['id'], how='outer').fillna("")
 
         elif action == "remove":
@@ -248,8 +243,8 @@ class Model(object):
             for d in json_lst:
                 tpc_dict = {'set': d[model_key]}
                 d[model_key] = tpc_dict
-                # sim_dict = {'set': d[sim_model_key]}
-                # d[sim_model_key] = sim_dict
+                sim_dict = {'set': d[sim_model_key]}
+                d[sim_model_key] = sim_dict
                 new_list.append(d)
         elif action == 'remove':
             for d in json_lst:
@@ -258,46 +253,10 @@ class Model(object):
                 sim_dict = {'set': []}
                 d[sim_model_key] = sim_dict
                 new_list.append(d)
-
-        # TODO: Make two updates, one for the document-topic proportions and one for the document by document similarities. Remove the '' from the similarities update before indexing
-
-        # TODO: Caculate coodinates before
+                
         return new_list, self.corpus_name
 
-    # def get_topic_coordinates(self):
-    #     """Get topic positions in the model as in PyLDAvis
-
-    #     Returns
-    #     -------
-    #     coords: list(tuple)
-    #         List of tuples with the coordinates of the topics in the model
-    #     """
-
-    #     ndocs = 10000
-    #     validDocs = np.sum(self.thetas.toarray(), axis=1) > 0
-    #     nValidDocs = np.sum(validDocs)
-    #     if ndocs > nValidDocs:
-    #         ndocs = nValidDocs
-    #     perm = np.sort(np.random.permutation(nValidDocs)[:ndocs])
-
-    #     # We consider all documents are equally important
-    #     doc_len = ndocs * [1]
-    #     vocabfreq = np.round(ndocs*(self.alphas.dot(self.betas))).astype(int)
-
-    #     # vis_data is of type PreparedData
-    #     vis_data = pyLDAvis.prepare(
-    #         topic_term_dists=self.betas,
-    #         doc_topic_dists=self.thetas[validDocs, ][perm, ].toarray(),
-    #         doc_lengths=doc_len,
-    #         vocab=self.vocab,
-    #         term_frequency=vocabfreq,
-    #         lambda_step=0.05,
-    #         sort_topics=False,
-    #         n_jobs=-1).to_dict()
-
-    #     return list(zip(*[vis_data['mdsDat']['x'], vis_data['mdsDat']['y']]))
-
-    def get_corpora_model_update(self, id: int, action: str):  # -> list[dict]:
+    def get_corpora_model_update(self, id: int, action: str) -> List[dict]:
         """Generates an update for the CORPUS_COL collection.
         Parameters
         ----------
@@ -323,13 +282,11 @@ class Model(object):
 
 if __name__ == '__main__':
     model = Model(pathlib.Path(
-        "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-25"))
+        "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-10"))
     json_lst = model.get_model_info_update(action='set')
     # pos = model.get_topic_pos()
-    import pdb
-    pdb.set_trace()
     # print(json_lst[0])
-    # df = model.get_model_info()
+    #df = model.get_model_info()
     # print(df[0].keys())
     # upt = model.get_corpora_model_update()
     # print(upt)
