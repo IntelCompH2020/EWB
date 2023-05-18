@@ -726,7 +726,7 @@ class EWBSolrClient(SolrClient):
 
         # 6. Normalize scores
         for el in results.docs:
-            el['score'] *= (100/self.max_sum)
+            el['score'] *= (100/(self.max_sum^2))
 
         return results.docs, sc
 
@@ -1088,7 +1088,8 @@ class EWBSolrClient(SolrClient):
             return
         
         # 6. Normalize scores
+        self.logger.info(f"-- --Results: {results.docs}")
         for el in results.docs:
-            el['score'] *= (100/self.max_sum)
+            el['score'] *= (100/(self.max_sum^2))
 
         return results.docs, sc

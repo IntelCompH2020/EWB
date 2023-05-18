@@ -145,7 +145,7 @@ class Queries(object):
         }
         
         # ================================================================
-        # # Q12: getBetasTopicById  ##################################################################
+        # # Q11: getBetasTopicById  ##################################################################
         # # Get word distribution of a selected topic in a
         # # model collection
         # http://localhost:8983/solr/{col}/select?fl=betas&q=id:t{id}
@@ -156,7 +156,7 @@ class Queries(object):
         }
         
         # ================================================================
-        # # Q13: getMostCorrelatedTopics
+        # # Q12: getMostCorrelatedTopics
         # ################################################################
         # # Get the most correlated topics to a given one in a selected
         # model
@@ -169,7 +169,7 @@ class Queries(object):
         }
         
         # ================================================================
-        # # Q14: getPairsOfDocsWithHighSim
+        # # Q13: getPairsOfDocsWithHighSim
         # ################################################################
         # # Get pairs of documents with a semantic similarity larger than a threshold
         # ================================================================
@@ -177,7 +177,7 @@ class Queries(object):
         }
         
         # ================================================================
-        # # Q15: getDocsSimilarToFreeText
+        # # Q14: getDocsSimilarToFreeText
         # ################################################################
         # # Get documents that are semantically similar to a free text
         # according to a given model
