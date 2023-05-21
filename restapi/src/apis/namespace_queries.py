@@ -135,9 +135,15 @@ q14_parser.add_argument(
 q14_parser.add_argument(
     'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
+q15_parser = reqparse.RequestParser()
+q15_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q15_parser.add_argument(
+    'doc_id', help='ID of the document whose whose doc-topic distribution associated to a specific model is to be retrieved', required=True)
+
 
 @api.route('/getThetasDocById/')
-class get_thetas_doc_by_id(Resource):
+class getThetasDocById(Resource):
     @api.doc(parser=q1_parser)
     def get(self):
         args = q1_parser.parse_args()
@@ -161,7 +167,7 @@ class getCorpusMetadataFields(Resource):
 
 
 @api.route('/getNrDocsColl/')
-class get_nr_docs_coll(Resource):
+class getNrDocsColl(Resource):
     @api.doc(parser=q3_parser)
     def get(self):
         args = q3_parser.parse_args()
@@ -171,7 +177,7 @@ class get_nr_docs_coll(Resource):
 
 
 @api.route('/getDocsWithThetasLargerThanThr/')
-class get_docs_with_thetas_larger_than_thr(Resource):
+class getDocsWithThetasLargerThanThr(Resource):
     @api.doc(parser=q4_parser)
     def get(self):
         args = q4_parser.parse_args()
@@ -333,3 +339,14 @@ class getPairsOfDocsWithHighSim(Resource):
                          text_to_infer=text_to_infer,
                          start=start,
                          rows=rows)
+
+@api.route('/getLemmasDocById/')
+class getLemmasDocById(Resource):
+    @api.doc(parser=q15_parser)
+    def get(self):
+        args = q15_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        doc_id = args['doc_id']
+
+        return sc.do_Q15(corpus_col=corpus_collection,
+                        doc_id=doc_id)

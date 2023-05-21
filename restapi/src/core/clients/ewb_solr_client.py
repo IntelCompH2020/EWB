@@ -523,7 +523,13 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q1. Aborting operation...")
             return
 
-        return {'thetas': results.docs[0]['doctpc_' + model_name]}, sc
+        # 4. Return -1 if thetas field is not found (it could happen that a document in a collection has not thetas representation since it was not keeped within the corpus used for training the model)
+        if 'doctpc_' + model_name in results.docs[0].keys():
+            resp = {'thetas': results.docs[0]['doctpc_' + model_name]}
+        else:
+            resp = {'thetas': -1}
+
+        return resp, sc
 
     def do_Q2(self, corpus_col: str):
         """Executes query Q2.
@@ -710,6 +716,24 @@ class EWBSolrClient(SolrClient):
         thetas_dict, sc = self.do_Q1(
             corpus_col=corpus_col, model_name=model_name, doc_id=doc_id)
         thetas = thetas_dict['thetas']
+
+        # 4. Check that thetas are available on the document given by doc_id. If not, infer them
+        if thetas == -1:
+            # Get text (lemmas) of the document so its thetas can be inferred
+            lemmas_dict, sc = self.do_Q15(
+                corpus_col=corpus_col, doc_id=doc_id)
+            lemmas = lemmas_dict['lemmas']
+
+            inf_resp = self.inferencer.infer_doc(text_to_infer=lemmas,
+                                                 model_for_inference=model_name)
+            if inf_resp.status_code != 200:
+                self.logger.error(
+                    f"-- -- Error attaining thetas from {lemmas} while executing query Q5. Aborting operation...")
+                return
+
+            thetas = inf_resp.results[0]['thetas']
+            self.logger.info(
+                f"-- -- Thetas attained in {inf_resp.time} seconds: {thetas}")
 
         # 4. Customize start and rows
         start, rows = self.custom_start_and_rows(start, rows, corpus_col)
@@ -1178,3 +1202,44 @@ class EWBSolrClient(SolrClient):
             el['score'] *= (100/(self.max_sum ^ 2))
 
         return results.docs, sc
+
+    def do_Q15(self,
+               corpus_col: str,
+               doc_id: str):
+        """Executes query Q15.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection.
+        id : str
+            ID of the document to be retrieved.
+
+        Returns
+        -------
+        lemmas: dict
+            JSON object with the document's lemmas.
+        sc : int
+            The status code of the response.  
+        """
+
+        # 0. Convert corpus and model names to lowercase
+        corpus_col = corpus_col.lower()
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        if not self.check_is_corpus(corpus_col):
+            return
+
+        # 2. Execute query
+        q15 = self.querier.customize_Q15(id=doc_id)
+        params = {k: v for k, v in q15.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q15['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q15. Aborting operation...")
+            return
+
+        return {'lemmas': results.docs[0]['all_lemmas']}, sc

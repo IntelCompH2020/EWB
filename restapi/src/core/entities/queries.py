@@ -184,6 +184,16 @@ class Queries(object):
         # ================================================================
         self.Q14 = self.Q5
         
+        # ================================================================
+        # # Q15: getLemmasDocById  ##################################################################
+        # # Get lemmas of a selected document in a corpus collection
+        # http://localhost:8983/solr/{col}/select?fl=all_lemmas&q=id:{id}
+        # ================================================================
+        self.Q15 = {
+            'q': 'id:{}',
+            'fl': 'all_lemmas',
+        }
+        
 
     def customize_Q1(self,
                      id: str,
@@ -538,3 +548,24 @@ class Queries(object):
             'rows': self.Q14['rows'].format(rows),
         }
         return custom_q14
+    
+    def customize_Q15(self,
+                     id: str) -> dict:
+        """Customizes query Q15 'getLemmasDocById'.
+
+        Parameters
+        ----------
+        id: str
+            Document id.
+
+        Returns
+        -------
+        custom_q15: dict
+            Customized query Q15.
+        """
+
+        custom_q15 = {
+            'q': self.Q15['q'].format(id),
+            'fl': self.Q15['fl'],
+        }
+        return custom_q15
