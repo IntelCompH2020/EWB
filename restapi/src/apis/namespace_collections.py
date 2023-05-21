@@ -43,12 +43,10 @@ query_parser.add_argument(
     'fl', help="Limits the information included in a query response to a specified list of fields. The fields need to either be stored='true' or docValues='true'")
 query_parser.add_argument(
     'df', help="Specifies a default field, overriding the definition of a default field in the Schema.")
-# TODO: Add remaining parameters if needed
+
 # ======================================================
 # Methods
 # ======================================================
-
-
 @api.route('/createCollection/')
 class CreateCollection(Resource):
     @api.doc(parser=parser)

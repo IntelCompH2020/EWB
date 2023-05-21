@@ -1,9 +1,17 @@
 
+"""
+This module provides 4 classes, each of them extending each of the inferencers provided at the '/base/inferencer.py' module. By doing so, it pass specific configuration parameters specifc to the EWB and returns the inferencer's response in the format expected by the API.
+
+Author: Lorena Calvo-Bartolomé
+Date: 19/05/2023
+"""
+
 import configparser
 import logging
 import pathlib
 import time
 from typing import Union
+
 from src.core.inferencer.base.inferencer import (CTMInferencer,
                                                  MalletInferencer,
                                                  ProdLDAInferencer,
@@ -13,7 +21,7 @@ from src.core.inferencer.base.inferencer import (CTMInferencer,
 class EWBMalletInferencer(MalletInferencer):
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "/config/config.cf"):
+                 config_file: str = "/config/config.cf") -> None:
         """
         Initilization Method
 
@@ -32,6 +40,8 @@ class EWBMalletInferencer(MalletInferencer):
         cf.read(config_file)
         self.mallet_path = cf.get('mallet', 'mallet_path')
         self.max_sum = cf.getint('restapi', 'max_sum')
+
+        return
 
     def predict(self, inferConfigFile: pathlib.Path) -> Union[dict, None]:
         """Execute inference on the given text and returns a response in the format expected by the API.
@@ -96,7 +106,7 @@ class EWBMalletInferencer(MalletInferencer):
 class EWBSparkLDAInferencer(SparkLDAInferencer):
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "/config/config.cf"):
+                 config_file: str = "/config/config.cf") -> None:
         """
         Initilization Method
 
@@ -114,6 +124,8 @@ class EWBSparkLDAInferencer(SparkLDAInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum')
+
+        return
 
     def predict(self, inferConfigFile: pathlib.Path) -> Union[dict, None]:
         # TODO: Implement predict method
@@ -123,7 +135,7 @@ class EWBSparkLDAInferencer(SparkLDAInferencer):
 class EWBProdLDAInferencer(ProdLDAInferencer):
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "/config/config.cf"):
+                 config_file: str = "/config/config.cf") -> None:
         """
         Initilization Method
 
@@ -141,6 +153,8 @@ class EWBProdLDAInferencer(ProdLDAInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum')
+
+        return
 
     def predict(self, inferConfigFile: pathlib.Path) -> Union[dict, None]:
         # TODO: Implement predict method
@@ -150,7 +164,7 @@ class EWBProdLDAInferencer(ProdLDAInferencer):
 class EWBCTMInferencer(CTMInferencer):
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "/config/config.cf"):
+                 config_file: str = "/config/config.cf") -> None:
         """
         Initilization Method
 
@@ -168,6 +182,8 @@ class EWBCTMInferencer(CTMInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum')
+
+        return
 
     def predict(self, inferConfigFile: pathlib.Path) -> Union[dict, None]:
         # TODO: Implement predict method

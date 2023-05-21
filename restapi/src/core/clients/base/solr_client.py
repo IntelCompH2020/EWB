@@ -13,8 +13,8 @@ Date: 27/03/2023
 
 import logging
 import os
+from typing import List, Union
 from urllib import parse
-from typing import List
 
 import requests
 
@@ -28,7 +28,7 @@ class SolrResults(object):
 
     def __init__(self,
                  json_response: dict,
-                 next_page_query: bool = None):
+                 next_page_query: bool = None) -> None:
         """Init method.
 
         Parameters
@@ -58,19 +58,17 @@ class SolrResults(object):
             self.nextCursorMark is not None and next_page_query or None
         )
 
-    def __len__(self):
-        """
+        return
 
-        """
+    def __len__(self) -> int:
+        """Return the number of documents in the results."""
         if self._next_page_query:
             return self.hits
         else:
             return len(self.docs)
 
-    def __iter__(self):
-        """
-
-        """
+    def __iter__(self) -> iter:
+        """Iterate over the documents in the results."""
         result = self
         while result:
             for d in result.docs:
@@ -115,7 +113,7 @@ class SolrResp(object):
                  status_code: int,
                  text: str,
                  data: list,
-                 results: SolrResults = None):
+                 results: SolrResults = None) -> None:
         """Init method.
 
         Parameters
@@ -133,6 +131,8 @@ class SolrResp(object):
         self.text = text
         self.data = data
         self.results = results
+
+        return
 
     @staticmethod
     def from_error(status_code: int, text: str):
@@ -183,7 +183,7 @@ class SolrClient(object):
     A class to handle Solr API requests.
     """
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """
         Parameters
         ----------
@@ -200,6 +200,8 @@ class SolrClient(object):
         import logging
         logging.basicConfig(level='DEBUG')
         self.logger = logging.getLogger('Solr')
+
+        return
 
     def _do_request(self,
                     type: str,
@@ -252,7 +254,7 @@ class SolrClient(object):
     def add_field_to_schema(self,
                             col_name: str,
                             field_name: str,
-                            field_type: str):
+                            field_type: str) -> Union[List[dict], int]:
         """Adds a field of type 'field_type'  and name 'field_name' to the schema of the collection given by 'col_name'. 
 
         Parameters
@@ -263,6 +265,13 @@ class SolrClient(object):
             The name of the field to add.
         field_type: str
             The type of the field to add.
+
+        Returns
+        -------
+        List[dict]
+            A list of dictionaries that represents the data returned by the Solr API response.
+        int
+            The HTTP status code of the Solr API response.
         """
 
         headers_ = {"Content-Type": "application/json"}
@@ -288,8 +297,22 @@ class SolrClient(object):
 
     def delete_field_from_schema(self,
                                  col_name: str,
-                                 field_name: str):
+                                 field_name: str) -> Union[List[dict], int]:
         """Deletes a field of name 'field_name' from the schema of the collection given by 'col_name'. 
+
+        Parameters
+        ----------
+        col_name: str
+            The name of the collection to delete the field from.
+        field_name: str
+            The name of the field to delete.
+
+        Returns
+        -------
+        List[dict]
+            A list of dictionaries that represents the data returned by the Solr API response.
+        int
+            The HTTP status code of the Solr API response.
         """
 
         headers_ = {"Content-Type": "application/json"}
@@ -310,9 +333,27 @@ class SolrClient(object):
                           col_name: str,
                           config: str = 'ewb_config',
                           nshards: int = 1,
-                          replicationFactor: int = 1):
+                          replicationFactor: int = 1) -> Union[str, int]:
         """Creates a Solr collection with the given name, config, number of shards, and replication factor.
         Returns a list with a dictionary containing the name of the created collection and the HTTP status code.
+
+        Parameters
+        ----------
+        col_name: str
+            The name of the collection to create.
+        config: str, defaults to 'ewb_config'
+            The name of the config to use for the collection.
+        nshards: int, defaults to 1
+            The number of shards to use for the collection.
+        replicationFactor: int, defaults to 1
+            The replication factor to use for the collection.
+
+        Returns
+        -------
+        str
+            The name of the created collection.
+        int
+            The HTTP status code of the Solr API response.
         """
 
         # Check if collection already exists
@@ -340,10 +381,20 @@ class SolrClient(object):
 
         return col_name, solr_resp.status_code
 
-    def delete_collection(self, col_name: str):
+    def delete_collection(self, col_name: str) -> Union[List[dict], int]:
         """
         Deletes a Solr collection with the given name.
         Returns a list with a dictionary containing the name of the deleted collection and the HTTP status code.
+
+        Parameters
+        ----------
+        col_name: str
+            The name of the collection to delete.
+
+        Returns
+        -------
+        List[dict]
+            A list of dictionaries with the name of the deleted collection.
         """
 
         url_ = '{}/api/collections?action=DELETE&name={}'.format(
@@ -354,9 +405,21 @@ class SolrClient(object):
 
         return [{'name': col_name}], solr_resp.status_code
 
-    def delete_doc_by_id(self, col_name: str, id: int):
+    def delete_doc_by_id(self, col_name: str, id: int) -> int:
         """
         Deletes the document with the given id in the Solr collection with the given name. 
+
+        Parameters
+        ----------
+        col_name: str
+            The name of the collection to delete the document from.
+        id: int
+            The id of the document to delete.
+
+        Returns
+        -------
+        int 
+            The HTTP status code of the Solr API response.
         """
 
         headers_ = {"Content-Type": "application/xml"}
@@ -375,10 +438,15 @@ class SolrClient(object):
 
         return solr_resp.status_code
 
-    def list_collections(self):
+    def list_collections(self) -> Union[List[dict], int]:
         """
         Lists all Solr collections and returns a list of dictionaries, where each dictionary has a key "name" with the value of the collection name,
         and the HTTP status code.
+
+        Returns
+        -------
+        List[dict]
+            A list of dictionaries with the names of the collections.
         """
 
         url_ = '{}/api/collections'.format(self.solr_url)
@@ -397,7 +465,7 @@ class SolrClient(object):
                     col_name: str,
                     to_index: int,
                     index_from: int,
-                    index_to: int):
+                    index_to: int) -> int:
         """Takes a batch of documents, a Solr collection name, and the indices of the batch to be indexed, and sends a POST request to the Solr server to index the documents. The method returns the status code of the response.
 
         Parameters
@@ -443,7 +511,7 @@ class SolrClient(object):
     def index_documents(self,
                         json_docs: List[dict],
                         col_name: str,
-                        batch_size: int = 100):
+                        batch_size: int = 100) -> None:
         """It takes a list of documents in JSON format and a Solr collection name, splits the list into batches, and sends a POST request to the Solr server to index the documents in batches. The method returns the status code of the response.
 
         Parameters
@@ -454,11 +522,6 @@ class SolrClient(object):
             The name of the Solr collection to index the documents into.
         batch_size : int
             Batch size with which the documents will be indexed
-
-        Returns
-        -------
-        sc : int
-            The status code of the response.    
         """
 
         docs_batch = []
@@ -486,7 +549,10 @@ class SolrClient(object):
     # ======================================================
     # QUERIES
     # ======================================================
-    def execute_query(self, q: str, col_name: str, **kwargs):
+    def execute_query(self,
+                      q: str,
+                      col_name: str,
+                      **kwargs) -> Union[int, SolrResults]:
         """ 
         Performs a query and returns the results.
 
@@ -494,9 +560,19 @@ class SolrClient(object):
 
         Parameters
         ----------
-        q:
-        col_name:
+        q : str
+            The query to be executed.
+        col_name : str
+            The name of the Solr collection to query.
+        **kwargs
+            Additional options to be passed through the Solr URL.
 
+        Returns
+        -------
+        int
+            The HTTP status code of the Solr API response.
+        SolrResults
+            The results of the query.
 
         Usage
         -----
@@ -521,7 +597,5 @@ class SolrClient(object):
 
        # Send query to Solr
         solr_resp = self._do_request(type="get", url=url_)
-
-        # self.logger.info(solr_resp.results.docs[0])
 
         return solr_resp.status_code, solr_resp.results

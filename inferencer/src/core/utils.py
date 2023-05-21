@@ -1,3 +1,10 @@
+"""
+Some utility functions.
+
+Author: Lorena Calvo-Bartolomé
+Date: 19/05/2023
+"""
+
 import datetime as DT
 import json
 import os
@@ -138,7 +145,7 @@ def get_infer_config(text_to_infer: str,
             fout.write(
                 str(1) + ' 0 ' + text_to_infer + '\n')
     else:
-        # TODO: Add embeddings so if words for neural models
+        # TODO: Add embeddings so it works for neural models
         pd.DataFrame(
             [[0, text_to_infer]], columns=["id", "bow_text"]
         ).to_parquet(path_to_trset)

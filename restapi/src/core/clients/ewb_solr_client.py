@@ -8,6 +8,7 @@ Date: 17/04/2023
 import configparser
 import logging
 import pathlib
+from typing import List, Union
 
 from src.core.clients.base.solr_client import SolrClient
 from src.core.clients.ewb_inferencer_client import EWBInferencerClient
@@ -20,7 +21,7 @@ class EWBSolrClient(SolrClient):
 
     def __init__(self,
                  logger: logging.Logger,
-                 config_file: str = "/config/config.cf"):
+                 config_file: str = "/config/config.cf") -> None:
         super().__init__(logger)
 
         # Read configuration from config file
@@ -37,11 +38,13 @@ class EWBSolrClient(SolrClient):
         # Create InferencerClient to send requests to the Inferencer API
         self.inferencer = EWBInferencerClient(logger)
 
+        return
+
     # ======================================================
     # CORPUS-RELATED OPERATIONS
     # ======================================================
     def index_corpus(self,
-                     corpus_logical_path: str):
+                     corpus_logical_path: str) -> None:
         """Given the string path of corpus file, it creates a Solr collection with such the stem name of the file (i.e., if we had '/data/source.Cordis.json' as corpus_logical_path, 'Cordis' would be the stem), reades the corpus file, extracts the raw information of each document, and sends a POST request to the Solr server to index the documents in batches.
 
         Parameters
@@ -109,8 +112,13 @@ class EWBSolrClient(SolrClient):
 
         return
 
-    def list_corpus_collections(self) -> list:
+    def list_corpus_collections(self) -> Union[List, int]:
         """Returns a list of the names of the corpus collections that have been created in the Solr server.
+
+        Returns
+        -------
+        corpus_lst: List
+            List of the names of the corpus collections that have been created in the Solr server.
         """
 
         sc, results = self.execute_query(q='*:*',
@@ -125,7 +133,7 @@ class EWBSolrClient(SolrClient):
 
         return corpus_lst, sc
 
-    def get_corpus_coll_fields(self, corpus_col: str) -> list:
+    def get_corpus_coll_fields(self, corpus_col: str) -> Union[List, int]:
         """Returns a list of the fields of the corpus collection given by 'corpus_col' that have been defined in the Solr server.
 
         Parameters
@@ -151,7 +159,7 @@ class EWBSolrClient(SolrClient):
 
         return results.docs[0]["fields"], sc
 
-    def get_corpus_models(self, corpus_col: str):
+    def get_corpus_models(self, corpus_col: str) -> Union[List, int]:
         """Returns a list with the models associated with the corpus given by 'corpus_col'
 
         Parameters
@@ -179,7 +187,7 @@ class EWBSolrClient(SolrClient):
         return results.docs[0]["models"], sc
 
     def delete_corpus(self,
-                      corpus_logical_path: str):
+                      corpus_logical_path: str) -> None:
         """Given the string path of corpus file, it deletes the Solr collection associated with it. Additionally, it removes the document entry of the corpus in the self.corpus_col collection and all the models that have been trained with such a logical corpus.
 
         Parameters
@@ -223,7 +231,7 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error deleting corpus from {self.corpus_col}")
         return
 
-    def check_is_corpus(self, corpus_col):
+    def check_is_corpus(self, corpus_col) -> bool:
         """Checks if the collection given by 'corpus_col' is a corpus collection.
 
         Parameters
@@ -245,7 +253,7 @@ class EWBSolrClient(SolrClient):
 
         return True
 
-    def check_corpus_has_model(self, corpus_col, model_name):
+    def check_corpus_has_model(self, corpus_col, model_name) -> bool:
         """Checks if the collection given by 'corpus_col' has a model with name 'model_name'.
 
         Parameters
@@ -271,7 +279,7 @@ class EWBSolrClient(SolrClient):
     # ======================================================
     # MODEL-RELATED OPERATIONS
     # ======================================================
-    def index_model(self, model_path: str):
+    def index_model(self, model_path: str) -> None:
         """
         Given the string path of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), it extracts the model information and that of the corpus used for its generation. It then adds a new field in the corpus collection of type 'VectorField' and name 'doctpc_{model_name}, and index the document-topic proportions in it. At last, it index the rest of the model information in the model collection.
 
@@ -337,8 +345,17 @@ class EWBSolrClient(SolrClient):
         json_tpcs = model.get_model_info()
         self.index_documents(json_tpcs, model_name, self.batch_size)
 
-    def list_model_collections(self) -> list:
+        return
+
+    def list_model_collections(self) -> Union[List[str], int]:
         """Returns a list of the names of the model collections that have been created in the Solr server.
+
+        Returns
+        -------
+        models_lst: List[str]
+            List of the names of the model collections that have been created in the Solr server.
+        sc: int
+            Status code of the request.
         """
         sc, results = self.execute_query(q='*:*',
                                          col_name=self.corpus_col,
@@ -352,7 +369,7 @@ class EWBSolrClient(SolrClient):
 
         return models_lst, sc
 
-    def delete_model(self, model_path: str):
+    def delete_model(self, model_path: str) -> None:
         """
         Given the string path of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), 
         it deletes the model collection associated with it. Additionally, it removes the document-topic proportions field in the corpus collection and removes the fields associated with the model and the model from the list of models in the corpus document from the self.corpus_col collection.
@@ -416,7 +433,7 @@ class EWBSolrClient(SolrClient):
 
         return
 
-    def check_is_model(self, model_col):
+    def check_is_model(self, model_col) -> bool:
         """Checks if the model_col is a model collection. If not, it aborts the operation.
 
         Parameters
@@ -440,7 +457,7 @@ class EWBSolrClient(SolrClient):
     # ======================================================
     # AUXILIARY FUNCTIONS
     # ======================================================
-    def custom_start_and_rows(self, start, rows, col):
+    def custom_start_and_rows(self, start, rows, col) -> Union[str, str]:
         """Checks if start and rows are None. If so, it returns the number of documents in the collection as the value for rows and 0 as the value for start.
 
         Parameters
@@ -479,7 +496,7 @@ class EWBSolrClient(SolrClient):
     def do_Q1(self,
               corpus_col: str,
               doc_id: str,
-              model_name: str):
+              model_name: str) -> Union[dict, int]:
         """Executes query Q1.
 
         Parameters
@@ -531,7 +548,7 @@ class EWBSolrClient(SolrClient):
 
         return resp, sc
 
-    def do_Q2(self, corpus_col: str):
+    def do_Q2(self, corpus_col: str) -> Union[dict, int]:
         """Executes query Q2.
 
         Parameters
@@ -571,7 +588,7 @@ class EWBSolrClient(SolrClient):
 
         return {'metadata_fields': meta_fields}, sc
 
-    def do_Q3(self, col: str):
+    def do_Q3(self, col: str) -> Union[dict, int]:
         """Executes query Q3.
 
         Parameters
@@ -615,7 +632,7 @@ class EWBSolrClient(SolrClient):
               topic_id: str,
               thr: str,
               start: str,
-              rows: str):
+              rows: str) -> Union[dict, int]:
         """Executes query Q4.
 
         Parameters
@@ -676,7 +693,7 @@ class EWBSolrClient(SolrClient):
               model_name: str,
               doc_id: str,
               start: str,
-              rows: str):
+              rows: str) -> Union[dict, int]:
         """Executes query Q5.
 
         Parameters
@@ -760,7 +777,7 @@ class EWBSolrClient(SolrClient):
 
     def do_Q6(self,
               corpus_col: str,
-              doc_id: str):
+              doc_id: str) -> Union[dict, int]:
         """Executes query Q6.
 
         Parameters
@@ -807,7 +824,7 @@ class EWBSolrClient(SolrClient):
               corpus_col: str,
               string: str,
               start: str,
-              rows: str):
+              rows: str) -> Union[dict, int]:
         """Executes query Q7.
 
         Parameters
@@ -869,7 +886,7 @@ class EWBSolrClient(SolrClient):
     def do_Q8(self,
               model_col: str,
               start: str,
-              rows: str):
+              rows: str) -> Union[dict, int]:
         """Executes query Q8.
 
         Parameters
@@ -918,7 +935,7 @@ class EWBSolrClient(SolrClient):
               model_name: str,
               topic_id: str,
               start: str,
-              rows: str):
+              rows: str) -> Union[dict, int]:
         """Executes query Q9.
 
         Parameters
@@ -978,7 +995,7 @@ class EWBSolrClient(SolrClient):
     def do_Q10(self,
                model_col: str,
                start: str,
-               rows: str):
+               rows: str) -> Union[dict, int]:
         """Executes query Q10.
 
         Parameters
@@ -1024,7 +1041,7 @@ class EWBSolrClient(SolrClient):
 
     def do_Q11(self,
                model_col: str,
-               topic_id: str):
+               topic_id: str) -> Union[dict, int]:
         """Executes query Q11.
 
         Parameters
@@ -1068,7 +1085,7 @@ class EWBSolrClient(SolrClient):
                model_col: str,
                topic_id: str,
                start: str,
-               rows: str):
+               rows: str) -> Union[dict, int]:
         """Executes query Q12.
 
         Parameters
@@ -1122,7 +1139,7 @@ class EWBSolrClient(SolrClient):
 
         return results.docs, sc
 
-    def do_Q13(self):
+    def do_Q13(self) -> Union[dict, int]:
 
         # TODO: Implement this query
         pass
@@ -1132,7 +1149,7 @@ class EWBSolrClient(SolrClient):
                model_name: str,
                text_to_infer: str,
                start: str,
-               rows: str):
+               rows: str) -> Union[dict, int]:
         """Executes query Q14.
 
         Parameters
@@ -1205,7 +1222,7 @@ class EWBSolrClient(SolrClient):
 
     def do_Q15(self,
                corpus_col: str,
-               doc_id: str):
+               doc_id: str) -> Union[dict, int]:
         """Executes query Q15.
 
         Parameters

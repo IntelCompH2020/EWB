@@ -1,3 +1,12 @@
+"""
+This  module provides 2 classes to handle Inferencer API responses and requests.
+
+The InferencerResponse class handles Inferencer API response and errors, while the EWBInferencerClient class handles requests to the Inferencer API.
+
+Author: Lorena Calvo-Bartolomé
+Date: 21/05/2023
+"""
+
 import logging
 import os
 
@@ -11,7 +20,7 @@ class InferencerResponse(object):
 
     def __init__(self,
                  resp: requests.Response,
-                 logger: logging.Logger):
+                 logger: logging.Logger) -> None:
 
         # Get JSON object of the result
         resp = resp.json()
@@ -25,6 +34,7 @@ class InferencerResponse(object):
         else:
             logger.info(
                 f"-- -- Inference request generated an error: {self.results['error']}")
+        return
 
 
 class EWBInferencerClient(object):
@@ -32,7 +42,7 @@ class EWBInferencerClient(object):
     A class to handle EWB Inferencer API requests.
     """
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """
         Parameters
         ----------
@@ -45,9 +55,14 @@ class EWBInferencerClient(object):
 
         # Initialize requests session and logger
         self.inferencer = requests.Session()
-        import logging
-        logging.basicConfig(level='DEBUG')
-        self.logger = logging.getLogger('Inferencer')
+
+        if logger:
+            self.logger = logger
+        else:
+            import logging
+            logging.basicConfig(level='DEBUG')
+            self.logger = logging.getLogger('Inferencer')
+        return
 
     def _do_request(self,
                     type: str,
@@ -125,7 +140,7 @@ class EWBInferencerClient(object):
 
         # Send request to Inferencer
         inf_resp = self._do_request(
-            type="post", url=url_, timeout= 120, headers=headers_, params=params_)
+            type="post", url=url_, timeout=120, headers=headers_, params=params_)
 
         return inf_resp
 

@@ -1,3 +1,5 @@
+"""This module is similar to the one available in the topicmodeler (https://github.com/IntelCompH2020/topicmodeler/blob/main/src/topicmodeling/manageModels.py). It provides a generic representation of all topic models used for curation purposes.
+"""
 import argparse
 import json
 import shutil

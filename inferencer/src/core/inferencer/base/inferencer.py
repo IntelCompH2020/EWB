@@ -1,3 +1,10 @@
+"""
+This module provides the class Inferencer, which consists of a wrapper for perfoming inference on a new unseen corpus. It contains specific implementations according to the trainer used for the generation of the topic model that is being used for inference.
+
+Author: Lorena Calvo-Bartolomé
+Date: 19/05/2023
+"""
+
 import argparse
 import json
 import logging
@@ -7,6 +14,7 @@ import sys
 from abc import abstractmethod
 from pathlib import Path
 from subprocess import check_output
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -36,7 +44,7 @@ class Inferencer(object):
     """
 
     def __init__(self,
-                 logger: logging.Logger):
+                 logger: logging.Logger) -> None:
         """
         Initilization Method
 
@@ -57,13 +65,17 @@ class Inferencer(object):
 
     def transform_inference_output(self,
                                    thetas32: np.array,
-                                   max_sum: int) -> None:
+                                   max_sum: int) -> List[dict]:
         """Saves the topic distribution for each document in text format (tXX|weightXX)
 
         Parameters
         ----------
         thetas32: np.ndarray
             Doc-topic distribution of the inferred documents
+
+        Returns
+        -------
+        List[dict]: List of dictionaries with the topic distribution for each document
         """
 
         self._logger.info(
@@ -189,9 +201,23 @@ class MalletInferencer(Inferencer):
     def predict(self,
                 inferConfigFile: pathlib.Path,
                 mallet_path: pathlib.Path = None,
-                max_sum: int = 1000):
+                max_sum: int = 1000) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to Mallet
+
+        Parameters
+        ----------
+        inferConfigFile: pathlib.Path
+            Path to the configuration file for the inference process
+        mallet_path: pathlib.Path
+            Path to the mallet binary
+        max_sum: int
+            Maximum sum of the topic proportions when attaining their string representation
+
+        Returns
+        -------
+        List[dict]
+            List of dictionaries with the inferred topics
         """
 
         with pathlib.Path(inferConfigFile).open('r', encoding='utf8') as fin:
@@ -290,7 +316,9 @@ class SparkLDAInferencer(Inferencer):
 
         super().__init__(logger)
 
-    def predict(self):
+    def predict(self,
+                inferConfigFile: pathlib.Path,
+                max_sum: int = 1000) -> List[dict]:
         # TODO: Implement SparkLDAInferencer
         return
 
@@ -302,9 +330,21 @@ class ProdLDAInferencer(Inferencer):
 
     def predict(self,
                 inferConfigFile: pathlib.Path,
-                max_sum: int = 1000):
+                max_sum: int = 1000) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to ProdLDA
+
+        Parameters
+        ----------
+        inferConfigFile: pathlib.Path
+            Path to the configuration file for the inference process
+        max_sum: int
+            Maximum sum of the topic proportions when attaining their string representation
+
+        Returns
+        -------
+        List[dict]
+            List of dictionaries with the inferred topics
         """
 
         with pathlib.Path(inferConfigFile).open('r', encoding='utf8') as fin:
@@ -367,9 +407,21 @@ class CTMInferencer(Inferencer):
 
     def predict(self,
                 inferConfigFile: pathlib.Path,
-                max_sum: int = 1000):
+                max_sum: int = 1000) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to CTM
+
+        Parameters
+        ----------
+        inferConfigFile: pathlib.Path
+            Path to the configuration file for the inference process
+        max_sum: int
+            Maximum sum of the topic proportions when attaining their string representation
+
+        Returns
+        -------
+        List[dict]
+            List of dictionaries with the inferred topics
         """
 
         with pathlib.Path(inferConfigFile).open('r', encoding='utf8') as fin:

@@ -60,6 +60,8 @@ class Corpus(object):
                 f"Logical corpus configuration {self.name} not found in config file.")
         self.title_field = cf.get(section, "title_field")
         self.date_field = cf.get(section, "date_field")
+        
+        return
 
     def get_docs_raw_info(self) -> List[dict]:
         """Extracts the information contained in the parquet file associated to the logical corpus and transforms into a list of dictionaries.
@@ -88,9 +90,9 @@ class Corpus(object):
             # Rename id-field to id, title-field to title and date-field to date
             ddf = ddf.rename(
                 columns={idfld: "id",
-                         self.title_field: "title", 
+                         self.title_field: "title",
                          self.date_field: "date"})
-            
+
         with ProgressBar():
             df = ddf.compute(scheduler='processes')
 

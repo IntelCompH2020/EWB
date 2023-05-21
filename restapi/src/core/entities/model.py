@@ -16,6 +16,7 @@ import pathlib
 from typing import List
 
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
 from dask.diagnostics import ProgressBar
 from src.core.entities.tm_model import TMmodel
@@ -57,6 +58,8 @@ class Model(object):
         self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
         self.alphas, self.betas, self.thetas, self.vocab, self.sims, self.coords = self.tmmodel.get_model_info_for_vis()
 
+        return
+
     def get_model_info(self) -> List[dict]:
         """It retrieves the information about a topic model as a list of dictionaries.
 
@@ -83,14 +86,44 @@ class Model(object):
         df = df[cols]
 
         # Get words in each topic
-        def get_tp_words(vector, max_sum, vocab_id2w):
+        def get_tp_words(vector: np.array, max_sum: int, vocab_id2w: dict) -> str:
+            """Get the words in a topic given the topic-word probabilities (words whose topic probability is larger than 0).
+
+            Parameters
+            ----------
+            vector: np.array
+                Topic-word probabilities.
+            max_sum: int
+                 Number representing the maximum sum of the vector elements.
+            vocab_id2w: dict
+                Dictionary mapping word ids to words.
+
+            Returns
+            -------
+            str
+                A string with the words in the topic.
+            """
             vector = sum_up_to(vector, max_sum)
             return ", ".join([vocab_id2w[str(idx)] for idx, val in enumerate(vector) if val != 0])
         df["vocab"] = df["betas"].apply(
             lambda x: get_tp_words(x, 1000, vocab_id2w))
 
         # Get betas string representation
-        def get_tp_str_rpr(vector, max_sum, vocab_id2w):
+        def get_tp_str_rpr(vector, max_sum):
+            """Get the string representation of the topic-word probabilities.
+
+            Parameters
+            ----------
+            vector: np.array
+                Topic-word probabilities.
+            max_sum: int
+                 Number representing the maximum sum of the vector elements.
+
+            Returns
+            -------
+            str
+                A string with the topic-word probabilities.
+            """
             vector = sum_up_to(vector, max_sum)
             rpr = ""
             for idx, val in enumerate(vector):
@@ -101,7 +134,7 @@ class Model(object):
             return rpr
 
         df["betas"] = df["betas"].apply(
-            lambda x: get_tp_str_rpr(x, 1000, vocab_id2w))
+            lambda x: get_tp_str_rpr(x, 1000))
 
         # Get topic coordinates in cluster space
         df["coords"] = self.coords
@@ -282,13 +315,13 @@ class Model(object):
         return json_lst
 
 
-if __name__ == '__main__':
-    model = Model(pathlib.Path(
-        "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-10"))
+# if __name__ == '__main__':
+    # model = Model(pathlib.Path(
+    #    "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-10"))
     # json_lst = model.get_model_info_update(action='set')
     # pos = model.get_topic_pos()
     # print(json_lst[0])
-    df = model.get_model_info()
+    # df = model.get_model_info()
     # print(df[0].keys())
     # upt = model.get_corpora_model_update()
     # print(upt)

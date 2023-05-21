@@ -340,6 +340,7 @@ class getPairsOfDocsWithHighSim(Resource):
                          start=start,
                          rows=rows)
 
+
 @api.route('/getLemmasDocById/')
 class getLemmasDocById(Resource):
     @api.doc(parser=q15_parser)
@@ -349,4 +350,4 @@ class getLemmasDocById(Resource):
         doc_id = args['doc_id']
 
         return sc.do_Q15(corpus_col=corpus_collection,
-                        doc_id=doc_id)
+                         doc_id=doc_id)
