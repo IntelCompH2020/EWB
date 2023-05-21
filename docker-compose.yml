@@ -12,12 +12,28 @@ services:
       - 80:80
     environment:
       SOLR_URL: http://solr:8983
+      INFERENCE_URL: http://ewb-inferencer:90
     depends_on:
       - solr
+      - inferencer
+    networks:
+      - ewb-net 
+    volumes:
+      - ./data/source:/data/source
+      - ./data/inference:/data/inference
+      - ./ewb_config:/config
+  
+  inferencer:
+    build: ./inferencer
+    container_name: ewb-inferencer
+    ports:
+      - 90:90
     networks:
       - ewb-net
     volumes:
       - ./data/source:/data/source
+      - ./data/inference:/data/inference
+      - ./ewb_config:/config
 
   solr:
     image: solr:9.1.1
