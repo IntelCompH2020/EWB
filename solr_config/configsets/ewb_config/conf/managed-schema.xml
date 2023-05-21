@@ -125,6 +125,7 @@
   <field name="ecMaxContribution" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="euroSciVocCode" type="pint" indexed="true" stored="true" multiValued="true" />
   <field name="startDate" type="pdate" indexed="true" stored="true" multiValued="false" />
+  <field name="date" type="pdate" indexed="true" stored="true" multiValued="false" />
 
   <!-- Model fields  -->
   <field name="alphas" type="pfloat" indexed="true" stored="true" multiValued="false" />

@@ -1,6 +1,6 @@
 """Main application entry point
 """
-from apis import api
+from src.apis import api
 from flask import Flask
 from pyfiglet import figlet_format
 from termcolor import cprint
