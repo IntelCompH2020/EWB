@@ -194,6 +194,18 @@ class Queries(object):
             'fl': 'all_lemmas',
         }
         
+         # ================================================================
+        # # Q16: getThetasAndDateAllDocs  ##################################################################
+        # # Get the document-topic representation and date of all documents in a corpus collection and selected model. Note that for documents with no document-topic representation, only the date field is returned
+        # http://localhost:8983/solr/{col}/query?q=*:*&q.op=OR&indent=true&fl=doctpc_{model},date&rows=1000&useParams=
+        # ================================================================
+        self.Q16 = {
+            'q': '*:*',
+            'fl': 'doctpc_{},date',
+            'start': '{}',
+            'rows': '{}'
+        }
+        
 
     def customize_Q1(self,
                      id: str,
