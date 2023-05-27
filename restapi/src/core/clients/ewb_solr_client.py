@@ -1260,3 +1260,66 @@ class EWBSolrClient(SolrClient):
             return
 
         return {'lemmas': results.docs[0]['all_lemmas']}, sc
+
+    def do_Q16(self,
+               corpus_col: str,
+               model_name: str,
+               start: str,
+               rows: str) -> Union[dict, int]:
+        """Executes query Q16.
+
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection.
+        model_name : str
+            Name of the model to be used for the retrieval of the document-topic distributions
+        start: str
+            Offset into the responses at which Solr should begin displaying content
+        rows: str
+            How many rows of responses are displayed at a time
+
+        Returns
+        -------
+        resp: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.  
+        """
+
+        # 0. Convert corpus and model names to lowercase
+        corpus_col = corpus_col.lower()
+        model_name = model_name.lower()
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        if not self.check_is_corpus(corpus_col):
+            return
+
+        # 2. Check that corpus_col has the model_name field
+        if not self.check_corpus_has_model(corpus_col, model_name):
+            return
+
+        # 3. Execute query
+        q16 = self.querier.customize_Q16(model_name=model_name,
+                                         start=start, rows=rows)
+        self.logger.info(
+                f"-- -- Query Q16: {q16}")
+        params = {k: v for k, v in q16.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q16['q'], col_name=corpus_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q16. Aborting operation...")
+            return
+
+        # 4. Add -1 if thetas field is not found for any of the documents (it could happen that a document in a collection has not thetas representation since it was not keeped within the corpus used for training the model)
+        def add_thetas(json_list):
+            for item in json_list:
+                if 'doctpc_' + model_name not in item:
+                    item['doctpc_' + model_name] = -1
+                yield item
+        processed_json_list = list(add_thetas(results.docs))
+
+        return processed_json_list, sc

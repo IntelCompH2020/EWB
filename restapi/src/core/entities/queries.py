@@ -201,7 +201,7 @@ class Queries(object):
         # ================================================================
         self.Q16 = {
             'q': '*:*',
-            'fl': 'doctpc_{},date',
+            'fl': 'id,date,doctpc_{}',
             'start': '{}',
             'rows': '{}'
         }
@@ -581,3 +581,32 @@ class Queries(object):
             'fl': self.Q15['fl'],
         }
         return custom_q15
+
+    def customize_Q16(self,
+                      model_name: str,
+                      start: str,
+                      rows: str) -> dict:
+        """Customizes query Q16 'getThetasAndDateAllDocs'.
+
+        Parameters
+        ----------
+        model_name: str
+            Name of the topic model whose topic distribution is to be retrieved.
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+
+        Returns
+        -------
+        custom_q16: dict
+            Customized query Q1.
+        """
+
+        custom_q16 = {
+            'q': self.Q16['q'],
+            'fl': self.Q16['fl'].format(model_name),
+            'start': self.Q16['start'].format(start),
+            'rows': self.Q16['rows'].format(rows),
+        }
+        return custom_q16

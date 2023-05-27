@@ -141,6 +141,16 @@ q15_parser.add_argument(
 q15_parser.add_argument(
     'doc_id', help='ID of the document whose whose doc-topic distribution associated to a specific model is to be retrieved', required=True)
 
+q16_parser = reqparse.RequestParser()
+q16_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q16_parser.add_argument(
+    'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution to be retrieved', required=True)
+q16_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q16_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
 
 @api.route('/getThetasDocById/')
 class getThetasDocById(Resource):
@@ -351,3 +361,19 @@ class getLemmasDocById(Resource):
 
         return sc.do_Q15(corpus_col=corpus_collection,
                          doc_id=doc_id)
+
+
+@api.route('/getThetasAndDateAllDocs/')
+class getThetasAndDateAllDocs(Resource):
+    @api.doc(parser=q16_parser)
+    def get(self):
+        args = q16_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        model_name = args['model_name']
+        start = args['start']
+        rows = args['rows']
+
+        return sc.do_Q16(corpus_col=corpus_collection,
+                         model_name=model_name,
+                         start=start,
+                         rows=rows)
