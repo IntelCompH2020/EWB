@@ -1298,8 +1298,11 @@ class EWBSolrClient(SolrClient):
         # 2. Check that corpus_col has the model_name field
         if not self.check_corpus_has_model(corpus_col, model_name):
             return
+        
+        # 3. Customize start and rows
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
 
-        # 3. Execute query
+        # 4. Execute query
         q16 = self.querier.customize_Q16(model_name=model_name,
                                          start=start, rows=rows)
         self.logger.info(
