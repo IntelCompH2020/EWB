@@ -10,6 +10,7 @@ Date: 27/03/2023
 """
 
 
+import configparser
 import json
 import os
 import pathlib
@@ -30,7 +31,8 @@ class Model(object):
 
     def __init__(self,
                  path_to_model: pathlib.Path,
-                 logger=None) -> None:
+                 logger=None,
+                 config_file: str = "/config/config.cf") -> None:
         """Init method.
 
         Parameters
@@ -39,6 +41,8 @@ class Model(object):
             Path to the TMmodel folder.
         logger : logging.Logger
             The logger object to log messages and errors.
+        config_file: str
+            Path to the configuration file.
         """
 
         if logger:
@@ -53,8 +57,16 @@ class Model(object):
                 '-- -- The provided model path does not exist.')
         self.path_to_model = path_to_model
 
+        # Read configuration from config file
+        cf = configparser.ConfigParser()
+        cf.read(config_file)
+        self.max_sum = int(cf.get('restapi', 'max_sum'))
+
+        # Get model and corpus names
         self.name = path_to_model.stem.lower()
         self.corpus_name = None
+
+        # Get model information from TMmodel
         self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
         self.alphas, self.betas, self.thetas, self.vocab, self.sims, self.coords = self.tmmodel.get_model_info_for_vis()
 
@@ -86,7 +98,9 @@ class Model(object):
         df = df[cols]
 
         # Get words in each topic
-        def get_tp_words(vector: np.array, max_sum: int, vocab_id2w: dict) -> str:
+        def get_tp_words(vector: np.array,
+                         max_sum: int,
+                         vocab_id2w: dict) -> str:
             """Get the words in a topic given the topic-word probabilities (words whose topic probability is larger than 0).
 
             Parameters
@@ -106,10 +120,12 @@ class Model(object):
             vector = sum_up_to(vector, max_sum)
             return ", ".join([vocab_id2w[str(idx)] for idx, val in enumerate(vector) if val != 0])
         df["vocab"] = df["betas"].apply(
-            lambda x: get_tp_words(x, 1000, vocab_id2w))
+            lambda x: get_tp_words(x, self.max_sum, vocab_id2w))
 
         # Get betas string representation
-        def get_tp_str_rpr(vector, max_sum):
+        def get_tp_str_rpr(vector: np.array,
+                           max_sum: int,
+                           vocab_id2w: dict) -> str:
             """Get the string representation of the topic-word probabilities.
 
             Parameters
@@ -118,6 +134,8 @@ class Model(object):
                 Topic-word probabilities.
             max_sum: int
                  Number representing the maximum sum of the vector elements.
+            vocab_id2w: dict
+                Dictionary mapping word ids to words.
 
             Returns
             -------
@@ -128,13 +146,13 @@ class Model(object):
             rpr = ""
             for idx, val in enumerate(vector):
                 if val != 0:
-                    rpr += "w" + str(idx) + "|" + str(val) + " "
-                    # rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
+                    # rpr += "w" + str(idx) + "|" + str(val) + " "
+                    rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
             rpr = rpr.rstrip()
             return rpr
 
         df["betas"] = df["betas"].apply(
-            lambda x: get_tp_str_rpr(x, 1000))
+            lambda x: get_tp_str_rpr(x, self.max_sum, vocab_id2w))
 
         # Get topic coordinates in cluster space
         df["coords"] = self.coords

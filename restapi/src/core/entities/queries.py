@@ -139,11 +139,11 @@ class Queries(object):
         # ================================================================
         self.Q10 = {
             'q': '*:*',
-            'fl': 'id,betas,vocab,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
+            'fl': 'id,betas,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
             'start': '{}',
             'rows': '{}'
         }
-        
+
         # ================================================================
         # # Q11: getBetasTopicById  ##################################################################
         # # Get word distribution of a selected topic in a
@@ -154,7 +154,7 @@ class Queries(object):
             'q': 'id:t{}',
             'fl': 'betas',
         }
-        
+
         # ================================================================
         # # Q12: getMostCorrelatedTopics
         # ################################################################
@@ -167,7 +167,7 @@ class Queries(object):
             'start': '{}',
             'rows': '{}'
         }
-        
+
         # ================================================================
         # # Q13: getPairsOfDocsWithHighSim
         # ################################################################
@@ -175,7 +175,7 @@ class Queries(object):
         # ================================================================
         self.Q13 = {
         }
-        
+
         # ================================================================
         # # Q14: getDocsSimilarToFreeText
         # ################################################################
@@ -183,7 +183,7 @@ class Queries(object):
         # according to a given model
         # ================================================================
         self.Q14 = self.Q5
-        
+
         # ================================================================
         # # Q15: getLemmasDocById  ##################################################################
         # # Get lemmas of a selected document in a corpus collection
@@ -193,8 +193,8 @@ class Queries(object):
             'q': 'id:{}',
             'fl': 'all_lemmas',
         }
-        
-         # ================================================================
+
+        # ================================================================
         # # Q16: getThetasAndDateAllDocs  ##################################################################
         # # Get the document-topic representation and date of all documents in a corpus collection and selected model. Note that for documents with no document-topic representation, only the date field is returned
         # http://localhost:8983/solr/{col}/query?q=*:*&q.op=OR&indent=true&fl=doctpc_{model},date&rows=1000&useParams=
@@ -205,7 +205,34 @@ class Queries(object):
             'start': '{}',
             'rows': '{}'
         }
-        
+
+        # ================================================================
+        # # Q17: getBetasByWordAndTopicId
+        # ################################################################
+        # # Get the topic-word distribution of a given word in a given topic
+        # http://localhost:8983/solr/#/{model}/query?q=id:t{topic_id}&q.op=OR&indent=true&fl=payload(betas,{word})&useParams=
+        # # Response example:
+        # # # {
+        # # #"responseHeader":{
+        # # #    "zkConnected":true,
+        # # #    "status":0,
+        # # #    "QTime":3,
+        # # #    "params":{
+        # # #    "q":"id:t0",
+        # # #    "indent":"true",
+        # # #    "fl":"payload(betas, researchers)",
+        # # #    "q.op":"OR",
+        # # #    "useParams":"",
+        # # #    "_":"1685958683375"}},
+        # # #"response":{"numFound":1,"start":0,"numFoundExact":true,"docs":[
+        # # #    {
+        # # #        "payload(betas, researchers)":7.0}]
+        # # #}}
+        # ================================================================
+        self.Q17 = {
+            'q': 'id:t{}',
+            'fl': 'payload(betas,{})',
+        }
 
     def customize_Q1(self,
                      id: str,
@@ -415,14 +442,14 @@ class Queries(object):
         }
 
         return custom_q8
-    
+
     def customize_Q9(self,
                      model_name: str,
                      topic_id: str,
                      start: str,
                      rows: str) -> dict:
         """Customizes query Q9 'getDocsByTopic'
-        
+
         Parameters
         ----------
         model_name: str
@@ -439,21 +466,21 @@ class Queries(object):
         custom_q9: dict
             Customized query Q9.
         """
-        
+
         custom_q9 = {
             'q': self.Q9['q'].format(model_name, topic_id),
             'fl': self.Q9['fl'].format(model_name),
             'start': self.Q9['start'].format(start),
             'rows': self.Q9['rows'].format(rows),
         }
-        
+
         return custom_q9
-    
+
     def customize_Q10(self,
                       start: str,
                       rows: str) -> dict:
         """Customizes query Q10 'getModelInfo'
-        
+
         Parameters
         ----------
         start: str
@@ -465,16 +492,16 @@ class Queries(object):
         custom_q10: dict
             Customized query Q10.
         """
-        
+
         custom_q10 = {
             'q': self.Q10['q'],
             'fl': self.Q10['fl'],
             'start': self.Q10['start'].format(start),
             'rows': self.Q10['rows'].format(rows),
         }
-        
+
         return custom_q10
-    
+
     def customize_Q11(self,
                       topic_id: str) -> dict:
         """Customizes query Q11 'getBetasTopicById'.
@@ -495,11 +522,11 @@ class Queries(object):
             'fl': self.Q11['fl']
         }
         return custom_q11
-    
+
     def customize_Q12(self,
-                     betas: str,
-                     start: str,
-                     rows: str) -> dict:
+                      betas: str,
+                      start: str,
+                      rows: str) -> dict:
         """Customizes query Q12 'getMostCorrelatedTopics'
 
         Parameters
@@ -524,16 +551,16 @@ class Queries(object):
             'rows': self.Q12['rows'].format(rows),
         }
         return custom_q12
-    
+
     def customize_Q13(self):
         # TODO: Implement
         pass
-    
+
     def customize_Q14(self,
-                     model_name: str,
-                     thetas: str,
-                     start: str,
-                     rows: str) -> dict:
+                      model_name: str,
+                      thetas: str,
+                      start: str,
+                      rows: str) -> dict:
         """Customizes query Q14 'getDocsSimilarToFreeText'
 
         Parameters
@@ -560,9 +587,9 @@ class Queries(object):
             'rows': self.Q14['rows'].format(rows),
         }
         return custom_q14
-    
+
     def customize_Q15(self,
-                     id: str) -> dict:
+                      id: str) -> dict:
         """Customizes query Q15 'getLemmasDocById'.
 
         Parameters
@@ -610,3 +637,28 @@ class Queries(object):
             'rows': self.Q16['rows'].format(rows),
         }
         return custom_q16
+
+    def customize_Q17(self,
+                      topic_id: str,
+                      word: str) -> dict:
+        """Customizes query Q17 'getBetasByWordAndTopicId'.
+
+        Parameters
+        ----------
+        topic_id: str
+            Topic id.
+        word: str
+            Word.
+
+        Returns
+        -------
+        custom_q17: dict
+            Customized query Q17.
+        """
+
+        custom_q17 = {
+            'q': self.Q17['q'].format(topic_id),
+            'fl': self.Q17['fl'].format(word)
+        }
+
+        return custom_q17
