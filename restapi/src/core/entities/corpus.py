@@ -32,6 +32,8 @@ class Corpus(object):
             Path the logical corpus json file.
         logger : logging.Logger
             The logger object to log messages and errors.
+        config_file: str
+            Path to the configuration file.
         """
 
         if logger:
