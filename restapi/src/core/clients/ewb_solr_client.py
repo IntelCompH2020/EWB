@@ -1038,7 +1038,7 @@ class EWBSolrClient(SolrClient):
             return
             
         for el in results.docs:
-            desc = el['tpc_desc riptions'].split(", ")
+            desc = el['tpc_descriptions'].split(", ")
             tpc_id = el['id'].split("t")[1]
             betas_list = [word + "|" + str(self.do_Q17(model_name=model_col, tpc_id=tpc_id, word=word)[0]['betas']) for word in desc]
             el['top_words_betas'] = ' '.join(betas_list)
