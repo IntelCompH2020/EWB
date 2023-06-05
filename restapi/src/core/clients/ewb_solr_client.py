@@ -1036,7 +1036,13 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q10. Aborting operation...")
             return
-
+            
+        for el in results.docs:
+            desc = el['tpc_desc riptions'].split(", ")
+            tpc_id = el['id'].split("t")[1]
+            betas_list = [word + "|" + str(self.do_Q17(model_name=model_col, tpc_id=tpc_id, word=word)[0]['betas']) for word in desc]
+            el['top_words_betas'] = ' '.join(betas_list)
+              
         return results.docs, sc
 
     def do_Q11(self,
@@ -1326,3 +1332,32 @@ class EWBSolrClient(SolrClient):
         processed_json_list = list(add_thetas(results.docs))
 
         return processed_json_list, sc
+
+    def do_Q17(self, 
+               model_name: str,
+               tpc_id : str,
+               word: str) -> Union[dict, int]:
+        
+        # 0. Convert model name to lowercase
+        model_name = model_name.lower()
+
+        # 1. Check that model_col is indeed a model collection
+        if not self.check_is_model(model_name):
+            return
+        
+        # 2. Execute query
+        q17 = self.querier.customize_Q17(topic_id=tpc_id, word=word)
+        params = {k: v for k, v in q17.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q17['q'], col_name=model_name, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q17. Aborting operation...")
+            return
+        
+        key = "payload(betas," + word + ")"
+        betas = int(results.docs[0][key])
+
+        return {'betas': betas}, sc

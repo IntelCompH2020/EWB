@@ -151,6 +151,14 @@ q16_parser.add_argument(
 q16_parser.add_argument(
     'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
+q17_parser = reqparse.RequestParser()
+q17_parser.add_argument(
+    'model_name', help='Name of the model to retrieve the topic-word distribution.', required=True)
+q17_parser.add_argument(
+    'tpc_id', help='ID of the specific topic to retrieve the topic-word distribution.', required=True)
+q17_parser.add_argument(
+    'word', help='Word of interest to retrieve its topic-word distribution in the specified topic. If the word is not present, the distribution is 0.', required=True)
+
 
 @api.route('/getThetasDocById/')
 class getThetasDocById(Resource):
@@ -377,3 +385,17 @@ class getThetasAndDateAllDocs(Resource):
                          model_name=model_name,
                          start=start,
                          rows=rows)
+
+
+@api.route('/getBetasByWordAndTopicId/')
+class getBetasByWordAndTopicId(Resource):
+    @api.doc(parser=q17_parser)
+    def get(self):
+        args = q17_parser.parse_args()
+        model_name = args['model_name']
+        tpc_id = args['tpc_id']
+        word = args['word']
+
+        return sc.do_Q17(model_name=model_name,
+                         tpc_id=tpc_id,
+                         word=word)
