@@ -128,7 +128,7 @@ class Queries(object):
         self.Q9 = {
             'q': '*:*',
             'sort': 'payload(doctpc_{},t{}) desc, nwords_per_doc desc',
-            'fl': 'doctpc_{}, nwords_per_doc',
+            'fl': 'doctpc_{}, nwords_per_doc, id',
             'start': '{}',
             'rows': '{}'
         }
