@@ -123,10 +123,12 @@ class Queries(object):
         # ################################################################
         # # Get the top documents for a given topic in a model collection
         # http://localhost:8983/solr/cordis/select?indent=true&q.op=OR&q=%7B!term%20f%3D{model}%7Dt{topic_id}&useParams=
+        # http://localhost:8983/solr/#/{corpus_collection}/query?q=*:*&q.op=OR&indent=true&fl=doctpc_{model_name},%20nwords_per_doc&sort=payload(doctpc_{model_name},t{topic_id})%20desc,%20nwords_per_doc%20desc&useParams=
         # ================================================================
         self.Q9 = {
-            'q': "{{!term f=doctpc_{}}}t{}",
-            'fl': 'id,doctpc_{}',
+            'q': '*:*',
+            'sort': 'payload(doctpc_{},t{}) desc, nwords_per_doc desc',
+            'fl': 'doctpc_{}, nwords_per_doc',
             'start': '{}',
             'rows': '{}'
         }
@@ -468,12 +470,13 @@ class Queries(object):
         """
 
         custom_q9 = {
-            'q': self.Q9['q'].format(model_name, topic_id),
+            'q': self.Q9['q'],
+            'sort': self.Q9['sort'].format(model_name, topic_id),
             'fl': self.Q9['fl'].format(model_name),
             'start': self.Q9['start'].format(start),
             'rows': self.Q9['rows'].format(rows),
         }
-
+        
         return custom_q9
 
     def customize_Q10(self,

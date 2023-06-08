@@ -989,7 +989,12 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q9. Aborting operation...")
             return
-
+        
+        # 6. Return a dictionary with names more understandable to the end user
+        for dict in results.docs:
+            dict["thetas"] = dict.pop('doctpc_' + model_name)
+            dict["num_words_per_doc"] = dict.pop("nwords_per_doc")
+        
         return results.docs, sc
 
     def do_Q10(self,

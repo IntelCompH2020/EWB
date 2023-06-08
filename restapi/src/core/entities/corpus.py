@@ -98,6 +98,8 @@ class Corpus(object):
         with ProgressBar():
             df = ddf.compute(scheduler='processes')
 
+        df["nwords_per_doc"] = df["all_lemmas"].apply(lambda x: len(x.split()))
+
         # Save corpus fields
         self.fields = df.columns.tolist()
 

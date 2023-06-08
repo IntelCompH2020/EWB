@@ -25,7 +25,7 @@ q1_parser = reqparse.RequestParser()
 q1_parser.add_argument(
     'corpus_collection', help='Name of the corpus collection', required=True)
 q1_parser.add_argument(
-    'doc_id', help='ID of the document whose whose doc-topic distribution associated to a specific model is to be retrieved', required=True)
+    'doc_id', help='ID of the document whose doc-topic distribution associated to a specific model is to be retrieved', required=True)
 q1_parser.add_argument(
     'model_name', help='Name of the model reponsible for the creation of the doc-topic distribution to be retrieved', required=True)
 
