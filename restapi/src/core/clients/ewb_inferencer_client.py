@@ -67,7 +67,7 @@ class EWBInferencerClient(object):
     def _do_request(self,
                     type: str,
                     url: str,
-                    timeout: int = 10,
+                    timeout: int = None,
                     **params) -> InferencerResponse:
         """Sends a request to the Inferencer API and returns an object of the InferencerResponse class.
 
@@ -140,7 +140,7 @@ class EWBInferencerClient(object):
 
         # Send request to Inferencer
         inf_resp = self._do_request(
-            type="post", url=url_, timeout=120, headers=headers_, params=params_)
+            type="post", url=url_, headers=headers_, params=params_)
 
         return inf_resp
 
