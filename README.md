@@ -6,6 +6,14 @@ The Evaluation Workbench Python Dockers form a multi-container application that 
 
 ![Python Dockers](https://github.com/IntelCompH2020/EWB/blob/main/static/Images/ewb-python-dockers.png)
 
+## Requirements
+
+- **Python requirements files** ([``ewb-restapi requirements``](https://github.com/IntelCompH2020/EWB/blob/main/restapi/requirements.txt) and [``inferencer requirements``](https://github.com/IntelCompH2020/EWB/blob/main/inferencer/requirements.txt)).
+
+   > *Note that the requirements are directly installed in their respective services at the building-up time.*
+
+- **Mallet package:** It needs to be downloaded from [``Mallet’s official website``](https://github.com/IntelCompH2020/EWB/blob/main/restapi/requirements.txt) into the following route: ```“/inferencer/src/core/models/mallet-2.0.8”```.
+
 ## Docker Compose Script
 
 The Docker Compose script sets up an environment for the EWB's RESTful API server that relies on a Solr search engine for data storage and retrieval.
