@@ -57,14 +57,17 @@ class Model(object):
                 '-- -- The provided model path does not exist.')
         self.path_to_model = path_to_model
 
-        # Read configuration from config file
-        cf = configparser.ConfigParser()
-        cf.read(config_file)
-        self.max_sum = int(cf.get('restapi', 'max_sum'))
-
         # Get model and corpus names
         self.name = path_to_model.stem.lower()
         self.corpus_name = None
+
+        # Read configuration from config file
+        cf = configparser.ConfigParser()
+        cf.read(config_file)
+        if self.name.startswith('prodlda') or self.name.startswith('ctm'):
+            self.max_sum = int(cf.get('restapi', 'max_sum_neural_models'))
+        else:
+            self.max_sum = int(cf.get('restapi', 'max_sum'))
 
         # Get model information from TMmodel
         self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
@@ -192,15 +195,15 @@ class Model(object):
         sim_model_key = 'sim_' + self.name
 
         # Get ids of documents kept in the tr corpus
-        if tr_config["trainer"] == "mallet":
+        if tr_config["trainer"].lower() == "mallet":
             def process_line(line):
                 id_ = line.rsplit(' 0 ')[0].strip()
                 id_ = int(id_.strip('"'))
                 return id_
             with open(self.path_to_model.joinpath("corpus.txt"), encoding="utf-8") as file:
                 ids_corpus = [process_line(line) for line in file]
-        elif tr_config["trainer"] == "prodlda" or \
-                tr_config["trainer"] == "ctm":
+        elif tr_config["trainer"].lower() == "prodlda" or \
+                tr_config["trainer"].lower() == "ctm":
             ddf = dd.read_parquet(
                 self.path_to_model.joinpath("corpus.parquet"))
             with ProgressBar():

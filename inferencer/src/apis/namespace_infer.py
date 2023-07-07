@@ -11,6 +11,9 @@ from src.core.inferencer.ewb_inferencer import (EWBCTMInferencer,
                                                 EWBProdLDAInferencer,
                                                 EWBSparkLDAInferencer)
 from src.core.utils import get_infer_config
+import logging
+logging.basicConfig(level='DEBUG')
+logger = logging.getLogger('Inferencer')
 
 # ======================================================
 # Define namespace for inference operations
@@ -56,7 +59,8 @@ class InferDoc(Resource):
         text_to_infer = args['text_to_infer']
         model_for_infer = args['model_for_infer']
         path_to_infer_config, trainer = \
-            get_infer_config(text_to_infer=text_to_infer,
+            get_infer_config(logger=logger,
+                             text_to_infer=text_to_infer,
                              model_for_infer=model_for_infer)
 
         return inferencers[trainer].predict(path_to_infer_config)

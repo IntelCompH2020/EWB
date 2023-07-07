@@ -23,7 +23,7 @@ from src.core.models.neural_models.contextualized_topic_models.utils.data_prepar
     prepare_hold_out_dataset
 from src.core.models.neural_models.pytorchavitm.utils.data_preparation import \
     prepare_hold_out_dataset
-from src.core.utils import sum_up_to, unpickler
+from src.core.utils import sum_up_to, unpickler_avitm_for_ewb_inferencer
 
 
 class Inferencer(object):
@@ -146,7 +146,10 @@ class Inferencer(object):
                     if line_els[0] == 's':
                         idx = [int(el) for el in line_els[1:]]
                         if thetas32.ndim == 2:
+                            self._logger.info(f'-- Thetas dim 2 before')
+                            self._logger.info(f'-- Thetas32: {thetas32}')
                             thetas32 = thetas32[idx, :]
+                            self._logger.info(f'-- Thetas dim 2 after')
                         elif thetas32.ndim == 1:
                             thetas32 = thetas32[idx]
                         else:
@@ -330,7 +333,7 @@ class ProdLDAInferencer(Inferencer):
 
     def predict(self,
                 inferConfigFile: pathlib.Path,
-                max_sum: int = 1000) -> List[dict]:
+                max_sum: int = 100000) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to ProdLDA
 
@@ -346,7 +349,6 @@ class ProdLDAInferencer(Inferencer):
         List[dict]
             List of dictionaries with the inferred topics
         """
-
         with pathlib.Path(inferConfigFile).open('r', encoding='utf8') as fin:
             self._inferConfig = json.load(fin)
 
@@ -369,7 +371,9 @@ class ProdLDAInferencer(Inferencer):
         # Holdout corpus should exist
         holdout_corpus = Path(
             self._inferConfig['infer_path']).joinpath("corpus.parquet")
-        if not os.path.isdir(holdout_corpus):
+        self._logger.info(
+                f'-- Holdout corpus is {holdout_corpus}')
+        if not os.path.isdir(holdout_corpus) and not os.path.isfile(holdout_corpus):
             self._logger.error(
                 '-- Inference error. File to perform the inference on not found')
             return
@@ -382,7 +386,7 @@ class ProdLDAInferencer(Inferencer):
         df_lemas = [doc[0].split() for doc in df_lemas]
 
         # Get avitm object for performing inference
-        avitm = unpickler(path_pickle)
+        avitm = unpickler_avitm_for_ewb_inferencer(path_pickle, self._logger)
 
         # Prepare holdout corpus in avitm format
         ho_corpus = [el for el in df_lemas]
@@ -407,7 +411,7 @@ class CTMInferencer(Inferencer):
 
     def predict(self,
                 inferConfigFile: pathlib.Path,
-                max_sum: int = 1000) -> List[dict]:
+                max_sum: int = 100000) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to CTM
 

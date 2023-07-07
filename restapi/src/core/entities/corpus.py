@@ -102,7 +102,6 @@ class Corpus(object):
 
         # Save corpus fields
         self.fields = df.columns.tolist()
-
         # Convert dates information to the format required by Solr ( ISO_INSTANT, The ISO instant formatter that formats or parses an instant in UTC, such as '2011-12-03T10:15:30Z')
         df, cols = convert_datetime_to_strftime(df)
         df[cols] = df[cols].applymap(parseTimeINSTANT)

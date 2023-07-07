@@ -123,6 +123,22 @@ q12_parser.add_argument(
 q12_parser.add_argument(
     'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
+q13_parser = reqparse.RequestParser()
+q13_parser.add_argument(
+    'corpus_collection', help='Name of the corpus collection', required=True)
+q13_parser.add_argument(
+    'model_name', help='Name of the model collection', required=True)
+q13_parser.add_argument(
+    'lower_limit', help='Lower percentage of semantic similarity to retrieve pairs of documents', required=True)
+q13_parser.add_argument(
+    'upper_limit', help='Upper percentage of semantic similarity to retrieve pairs of documents', required=True)
+q13_parser.add_argument(
+    'year', help='Publication year to be filtered by', required=True)
+q13_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q13_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
 q14_parser = reqparse.RequestParser()
 q14_parser.add_argument(
     'corpus_collection', help='Name of the corpus collection', required=True)
@@ -333,16 +349,29 @@ class getMostCorrelatedTopics(Resource):
                          start=start,
                          rows=rows)
 
-# @api.route('/getPairsOfDocsWithHighSim/')
-# class getPairsOfDocsWithHighSim(Resource):
-#     @api.doc(parser=q13_parser)
-#     def get(self):
-#         args = q13_parser.parse_args()
-#         # TODO: Implement this
+@api.route('/getPairsOfDocsWithHighSim/')
+class getPairsOfDocsWithHighSim(Resource):
+    @api.doc(parser=q13_parser)
+    def get(self):
+        args = q13_parser.parse_args()
+        corpus_collection = args['corpus_collection']
+        model_name = args['model_name']
+        lower_limit = args['lower_limit']
+        upper_limit = args['upper_limit']
+        year = args['year']
+        start = args['start']
+        rows = args['rows']
 
+        return sc.do_Q13(corpus_col=corpus_collection,
+                        model_name=model_name,
+                        lower_limit=lower_limit,
+                        upper_limit=upper_limit,
+                        year=year,
+                        start=start,
+                        rows=rows)
 
 @api.route('/getDocsSimilarToFreeText/')
-class getPairsOfDocsWithHighSim(Resource):
+class getDocsSimilarToFreeText(Resource):
     @api.doc(parser=q14_parser)
     def get(self):
         args = q14_parser.parse_args()

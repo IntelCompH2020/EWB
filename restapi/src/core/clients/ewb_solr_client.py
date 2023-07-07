@@ -85,7 +85,7 @@ class EWBSolrClient(SolrClient):
                     f"-- -- Error getting latest used ID. Aborting operation...")
                 return
             # Increment corpus_id for next corpus to be indexed
-            corpus_id = results.docs[0]["id"] + 1
+            corpus_id = int(results.docs[0]["id"]) + 1
         else:
             self.logger.info(
                 f"Collection {self.corpus_col} successfully created.")
@@ -215,13 +215,15 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error getting corpus ID. Aborting operation...")
             return
 
-        # 4. Delete all models associated with the corpus
-        for model in results.docs[0]["models"]:
-            _, sc = self.delete_collection(col_name=model)
-            if sc != 200:
-                self.logger.error(
-                    f"-- -- Error deleting model collection {model}")
-                return
+        # 4. Delete all models associated with the corpus if any
+        # TODO: Check
+        if "models" in results.docs[0].keys():
+            for model in results.docs[0]["models"]:
+                _, sc = self.delete_collection(col_name=model)
+                if sc != 200:
+                    self.logger.error(
+                        f"-- -- Error deleting model collection {model}")
+                    return
 
         # 5. Remove corpus from self.corpus_col
         sc = self.delete_doc_by_id(
@@ -1150,10 +1152,82 @@ class EWBSolrClient(SolrClient):
 
         return results.docs, sc
 
-    def do_Q13(self) -> Union[dict, int]:
+    def do_Q13(self,
+               corpus_col: str,
+               model_name: str,
+               lower_limit: str,
+               upper_limit: str,
+               year:str,
+               start: str,
+               rows: str) -> Union[dict, int]:
+        
+        """Executes query Q13.
 
-        # TODO: Implement this query
-        pass
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection
+        model_name: str
+            Name of the model to be used for the retrieval
+        lower_limit: str
+            Lower percentage of semantic similarity to retrieve pairs of documents
+        upper_limit: str
+            Upper percentage of semantic similarity to retrieve pairs of documents
+        year: str
+            Publication year to be filtered by
+        start: str
+            Offset into the responses at which Solr should begin displaying content
+        rows: str
+            How many rows of responses are displayed at a time 
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.  
+        """
+
+        # 0. Convert corpus and model names to lowercase
+        corpus_col = corpus_col.lower()
+        model_name = model_name.lower()
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        if not self.check_is_corpus(corpus_col):
+            return
+
+        # 2. Check that corpus_col has the model_name field
+        if not self.check_corpus_has_model(corpus_col, model_name):
+            return
+
+        # 4. Customize start and rows
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
+
+        # 5. Execute query
+        q13 = self.querier.customize_Q13(
+            model_name=model_name, lower_limit=lower_limit,
+            upper_limit=upper_limit, start=start, rows=rows)
+        params = {k: v for k, v in q13.items() if k != 'q'}
+
+        self.logger.info(
+                f"-- -- Antes de ejecutar la query")
+
+        sc, results = self.execute_query(
+            q=q13['q'], col_name=corpus_col, **params)
+        
+        self.logger.info(
+                f"-- -- Después de ejecutar la query")
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q13. Aborting operation...")
+            return
+
+        # 6. Normalize scores
+        for el in results.docs:
+            el['score'] *= (100/(self.max_sum ^ 2))
+
+        return results.docs, sc
 
     def do_Q14(self,
                corpus_col: str,

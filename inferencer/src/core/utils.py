@@ -17,6 +17,19 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
+import logging
+
+from src.core.models.neural_models.pytorchavitm.avitm_network.avitm import \
+    AVITM
+from src.core.models.neural_models.pytorchavitm.avitm_network.decoder_network import \
+    DecoderNetwork
+from src.core.models.neural_models.pytorchavitm.avitm_network.inference_network import \
+    InferenceNetwork
+from src.core.models.neural_models.pytorchavitm.datasets.bow_dataset import \
+    BOWDataset
+from src.core.models.neural_models.utils.early_stopping.pytorchtools import \
+    EarlyStopping
+
 
 def unpickler(file: str):
     """Unpickle file"""
@@ -29,6 +42,44 @@ def pickler(file: str, ob):
     with open(file, 'wb') as f:
         pickle.dump(ob, f)
     return 0
+
+def unpickler_avitm_for_ewb_inferencer(path_pickle: pathlib.Path, logger: logging.Logger):
+    """
+    Unpickle the AVITM model for the EWB Inferencer
+
+    Parameters
+    ----------
+    path_pickle: pathlib.Path
+        Path to the pickle file
+    
+    Returns
+    -------
+    avitm_model: AVITM
+        AVITM model
+    """
+    all_data = unpickler(path_pickle)
+    train_data = BOWDataset(**all_data[0])
+    validation_data = BOWDataset(**all_data[1])
+    early_stopping = EarlyStopping()
+    early_stopping.__dict__ = all_data[2]
+    inf_net = InferenceNetwork(
+        input_size=all_data[5]['input_size'],
+        output_size=all_data[5]['output_size'],
+        hidden_sizes=all_data[5]['hidden_sizes'])
+    inf_net.__dict__ = all_data[5]
+
+    decoder = DecoderNetwork(input_size=all_data[4]['input_size'])
+    all_data[4]["_modules"]["inf_net"] = inf_net
+    decoder.__dict__ = all_data[4]
+
+    avitm = AVITM(logger=logger, input_size=all_data[3]['input_size'])
+    all_data[3]['model'] = decoder
+    all_data[3]['early_stopping'] = early_stopping
+    all_data[3]['train_data'] = train_data
+    all_data[3]['validation_data'] = validation_data
+    avitm.__dict__ = all_data[3]
+
+    return avitm
 
 
 def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
@@ -75,7 +126,8 @@ def find_folder(path: str, target_folder: str):
     return None
 
 
-def get_infer_config(text_to_infer: str,
+def get_infer_config(logger: logging.Logger,
+                     text_to_infer: str,
                      model_for_infer: str,
                      path_to_source: str = "/data/source",
                      path_to_infer: str = "/data/inference") -> Union[pathlib.Path, str]:
@@ -133,7 +185,7 @@ def get_infer_config(text_to_infer: str,
     # Delete file if it exists
     path_to_trset = \
         infer_path.joinpath(
-            "corpus.txt") if trainer == 'mallet' else infer_path.joinpath.joinpath("corpus.parquet")
+            "corpus.txt") if trainer == 'mallet' else infer_path.joinpath("corpus.parquet")
     if path_to_trset.is_file():
         path_to_trset.unlink()
     elif path_to_trset.is_dir():
@@ -146,6 +198,11 @@ def get_infer_config(text_to_infer: str,
                 str(1) + ' 0 ' + text_to_infer + '\n')
     else:
         # TODO: Add embeddings so it works for neural models
+        if trainer == 'ctm': 
+            pd.DataFrame(
+            [[0, text_to_infer]], columns=["id", "bow_text", "embeddings"]
+            ).to_parquet(path_to_trset)
+
         pd.DataFrame(
             [[0, text_to_infer]], columns=["id", "bow_text"]
         ).to_parquet(path_to_trset)
