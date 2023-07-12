@@ -1,6 +1,3 @@
 [submodule "solr-ewb-jensen-shanon-distance-plugin"]
 	path = solr-ewb-jensen-shanon-distance-plugin
 	url = https://github.com/Nemesis1303/solr-ewb-jensen-shanon-distance-plugin.git
-[submodule "solr-ewb-similar-pairs-docs"]
-	path = solr-ewb-similar-pairs-docs
-	url = https://github.com/albertomendoza98/solr-ewb-similar-pairs-docs.git
