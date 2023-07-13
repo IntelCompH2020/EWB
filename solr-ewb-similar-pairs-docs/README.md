@@ -1,1 +1,0 @@
-# solr-ewb-pairs-similar-docs
