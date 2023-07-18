@@ -9,7 +9,7 @@ services:
     build: ./restapi
     container_name: ewb-restapi
     ports:
-      - 80:80
+      - 82:82
     environment:
       SOLR_URL: http://solr:8983
       INFERENCE_URL: http://ewb-inferencer:90
@@ -34,6 +34,15 @@ services:
       - ./data/source:/data/source
       - ./data/inference:/data/inference
       - ./ewb_config:/config
+   
+  initializer:
+    image: alpine
+    container_name: solr-initializer
+    restart: "no"
+    entrypoint: |
+      /bin/sh -c "chown 8983:8983 /solr"
+    volumes:
+      - ./db/data/solr:/solr
 
   solr:
     image: solr:9.1.1

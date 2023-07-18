@@ -11,6 +11,6 @@ RUN mkdir -p /data/inference
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install "dask[dataframe]"
 
-EXPOSE 80
+EXPOSE 82
 
 CMD ["python3", "app.py"]
