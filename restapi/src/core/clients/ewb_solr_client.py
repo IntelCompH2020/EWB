@@ -8,6 +8,7 @@ Date: 17/04/2023
 import configparser
 import logging
 import pathlib
+import pandas as pd
 from typing import List, Union
 
 from src.core.clients.base.solr_client import SolrClient
@@ -490,6 +491,66 @@ class EWBSolrClient(SolrClient):
                 return
 
         return start, rows
+    
+    def indexes_filter(row):
+        """Auxiliary function to filter the 'similitudes' column by the 'indexes' column.
+        It is used inside an apply function in pandas, so it iterates over the rows of the DataFrame.
+        """
+        indexes = str(row['indexes']).split('.')
+        lower_limit = int(indexes[0])
+        upper_limit = int(indexes[1]) + 1
+        similitudes = row['similitudes'].split(" ")
+        filtered_similitudes = similitudes[lower_limit:upper_limit]
+
+        return ' '.join(filtered_similitudes)
+
+    def pairs_sims_process(df1: pd.DataFrame, df2: pd.DataFrame, year: str, num_records: int):
+        """Function to process the pairs of documents in descendent order by the similarities for a given year.
+
+        Parameters
+        ----------
+        df1 : pd.DataFrame
+            DataFrame returned by the plugin solr-ewb-sims query with the indexes to filter the similarities field.
+        df2 : pd.DataFrame
+            DataFrame returned by the second query with the similarities and date fields.
+        year: str
+            Text introduced by the user to filter the query.
+
+        Returns
+        -------
+        df_sims: list
+            List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
+        """
+        # 0. Filter by year the second dataframe
+        filtered_df = df2[df2['date'].str.startswith(year)]
+        # 1. Join by id and keep only the matching rows
+        merged_df = pd.merge(df1, filtered_df, on='id')
+        # 2. Apply the indexes filter to the 'similitudes' column
+        merged_df['similitudes'] = merged_df.apply(indexes_filter, axis=1)
+        # 3. Remove the 'indexes' column
+        merged_df.drop(['indexes', 'date'], axis=1, inplace=True)
+        # 4. Split the 'similitudes' column and create multiple rows
+        df_sims = merged_df.assign(similitudes=merged_df['similitudes'].str.split(' ')).explode('similitudes')
+        # 5. Divide the 'similitudes' column into two columns: id_similitud and similitudes
+        df_sims[['id_similitud', 'similitudes']] = df_sims['similitudes'].str.split('|', expand=True)
+        # 6. Convert the 'id_similitud' and 'similitudes' columns to numeric types
+        df_sims['id_similitud'] = df_sims['id_similitud'].astype(int)
+        df_sims['similitudes'] = df_sims['similitudes'].astype(float)
+        # 7. Remove rows where the values of "id" and "id_similitud" match
+        df_sims = df_sims[df_sims['id'] != df_sims['id_similitud']]
+        # 8. Sort the DataFrame from highest to lowest based on the "similitudes" field
+        df_sims = df_sims.sort_values(by='similitudes', ascending=False)
+        # 9. Reset the DataFrame index
+        df_sims.reset_index(drop=True, inplace=True)
+        # 10. Keep only the first num_records rows
+        df_sims = df_sims.head(num_records)
+        # 11. Rename the columns
+        df_sims.rename(columns={'id': 'id_1', 'id_similitud': 'id_2', 'similitudes': 'similarity'}, inplace=True)
+        # 12. Reorder the columns
+        columns_order = ['id_1', 'id_2', 'similarity']
+        df_sims = df_sims.reindex(columns=columns_order)
+
+        return df_sims.to_dict('records')
 
     # ======================================================
     # QUERIES
@@ -1200,34 +1261,31 @@ class EWBSolrClient(SolrClient):
         if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
-        # 4. Customize start and rows
-        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
+        # 3. Return total number of documents in the collection.
+        start, rows = self.custom_start_and_rows(None, None, corpus_col)
 
-        # 5. Execute query
+        # 5. Execute query (Returns in the score the indexes between the similarities field of each document that are within the range specified in the query)
         q13 = self.querier.customize_Q13(
             model_name=model_name, lower_limit=lower_limit,
             upper_limit=upper_limit, start=start, rows=rows)
         params = {k: v for k, v in q13.items() if k != 'q'}
 
-        self.logger.info(
-                f"-- -- Antes de ejecutar la query")
-
-        sc, results = self.execute_query(
+        sc, indexes_dict = self.execute_query(
             q=q13['q'], col_name=corpus_col, **params)
         
-        self.logger.info(
-                f"-- -- Después de ejecutar la query")
+        df_indexes = pd.DataFrame(indexes_dict.docs) 
+
+        dict_sims = self.pairs_sims_process(df_indexes, df_indexes, year=year, num_records=rows)
 
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q13. Aborting operation...")
             return
 
-        # 6. Normalize scores
-        for el in results.docs:
-            el['score'] *= (100/(self.max_sum ^ 2))
+        self.logger.info(
+                f"-- -- Results object of the QUERY 13: {df_indexes}")
 
-        return results.docs, sc
+        return dict_sims, sc
 
     def do_Q14(self,
                corpus_col: str,
