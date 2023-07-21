@@ -492,64 +492,69 @@ class EWBSolrClient(SolrClient):
 
         return start, rows
     
-    def indexes_filter(row):
-        """Auxiliary function to filter the 'similitudes' column by the 'indexes' column.
+    def indexes_filter(self, row):
+        """Auxiliary function to filter the 'similarities' column by the 'indexes' column.
         It is used inside an apply function in pandas, so it iterates over the rows of the DataFrame.
         """
-        indexes = str(row['indexes']).split('.')
+        indexes = str(row['score']).split('.')
         lower_limit = int(indexes[0])
         upper_limit = int(indexes[1]) + 1
-        similitudes = row['similitudes'].split(" ")
-        filtered_similitudes = similitudes[lower_limit:upper_limit]
+        similarities = row['similarities'].split(" ")
+        filtered_similarities = similarities[lower_limit:upper_limit]
 
-        return ' '.join(filtered_similitudes)
+        return ' '.join(filtered_similarities)
 
-    def pairs_sims_process(df1: pd.DataFrame, df2: pd.DataFrame, year: str, num_records: int):
+    def pairs_sims_process(self, df: pd.DataFrame, model_name: str, num_records: int):
         """Function to process the pairs of documents in descendent order by the similarities for a given year.
 
         Parameters
         ----------
-        df1 : pd.DataFrame
-            DataFrame returned by the plugin solr-ewb-sims query with the indexes to filter the similarities field.
-        df2 : pd.DataFrame
-            DataFrame returned by the second query with the similarities and date fields.
-        year: str
-            Text introduced by the user to filter the query.
+        df : pd.DataFrame
+            DataFrame with documents id, similarities and score.
 
         Returns
         -------
         df_sims: list
             List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
         """
-        # 0. Filter by year the second dataframe
-        filtered_df = df2[df2['date'].str.startswith(year)]
-        # 1. Join by id and keep only the matching rows
-        merged_df = pd.merge(df1, filtered_df, on='id')
-        # 2. Apply the indexes filter to the 'similitudes' column
-        merged_df['similitudes'] = merged_df.apply(indexes_filter, axis=1)
-        # 3. Remove the 'indexes' column
-        merged_df.drop(['indexes', 'date'], axis=1, inplace=True)
-        # 4. Split the 'similitudes' column and create multiple rows
-        df_sims = merged_df.assign(similitudes=merged_df['similitudes'].str.split(' ')).explode('similitudes')
-        # 5. Divide the 'similitudes' column into two columns: id_similitud and similitudes
-        df_sims[['id_similitud', 'similitudes']] = df_sims['similitudes'].str.split('|', expand=True)
-        # 6. Convert the 'id_similitud' and 'similitudes' columns to numeric types
-        df_sims['id_similitud'] = df_sims['id_similitud'].astype(int)
-        df_sims['similitudes'] = df_sims['similitudes'].astype(float)
-        # 7. Remove rows where the values of "id" and "id_similitud" match
-        df_sims = df_sims[df_sims['id'] != df_sims['id_similitud']]
-        # 8. Sort the DataFrame from highest to lowest based on the "similitudes" field
-        df_sims = df_sims.sort_values(by='similitudes', ascending=False)
-        # 9. Reset the DataFrame index
+        # 0. Rename the 'sim_{model_name}' column to 'similarities'
+        sim_model_key = 'sim_' + model_name
+        df.rename(columns={sim_model_key: 'similarities'}, inplace=True)
+        self.logger.info(
+                f"-- -- Step 0: {df}")
+        # 1. Remove rows with score = 0.00
+        df_filtered = df.loc[df['score'] != 0.00].copy()
+        self.logger.info(
+                f"-- -- Step 1: {df_filtered}")
+        # 2. Apply the score filter to the 'similitudes' column
+        df_filtered['similarities'] = df_filtered.apply(self.indexes_filter, axis=1)
+        self.logger.info(
+                f"-- -- Step 2: {df_filtered}")
+        # 3. Remove the 'score' column
+        df_filtered.drop(['score'], axis=1, inplace=True)
+        # 4. Split the 'similarities' column and create multiple rows
+        df_sims = df_filtered.assign(similarities=df_filtered['similarities'].str.split(' ')).explode('similarities')
+        # 5. Divide the 'similarities' column into two columns: id_similarities and similarities
+        df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
+        # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
+        df_sims['id_similarities'] = df_sims['id_similarities'].astype(int)
+        df_sims['similarities'] = df_sims['similarities'].astype(float)
+        # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
+        df_sims = df_sims[df_sims['id_similarities'].isin(df_sims['id'])]
+        # 8. Remove rows where the values of "id" and "id_similarities" match (same document)
+        df_sims = df_sims[df_sims['id'] != df_sims['id_similarities']]
+        # 9. Sort the DataFrame from highest to lowest based on the "similarities" field
+        df_sims = df_sims.sort_values(by='similarities', ascending=False)
+        # 10. Reset the DataFrame index
         df_sims.reset_index(drop=True, inplace=True)
-        # 10. Keep only the first num_records rows
+        # 11. Keep only the first num_records rows
         df_sims = df_sims.head(num_records)
-        # 11. Rename the columns
-        df_sims.rename(columns={'id': 'id_1', 'id_similitud': 'id_2', 'similitudes': 'similarity'}, inplace=True)
-        # 12. Reorder the columns
+        # 12. Rename the columns
+        df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'similarity'}, inplace=True)
+        # 13. Reorder the columns
         columns_order = ['id_1', 'id_2', 'similarity']
         df_sims = df_sims.reindex(columns=columns_order)
-
+        
         return df_sims.to_dict('records')
 
     # ======================================================
@@ -1219,8 +1224,7 @@ class EWBSolrClient(SolrClient):
                lower_limit: str,
                upper_limit: str,
                year:str,
-               start: str,
-               rows: str) -> Union[dict, int]:
+               num_records: str) -> Union[dict, int]:
         
         """Executes query Q13.
 
@@ -1236,9 +1240,7 @@ class EWBSolrClient(SolrClient):
             Upper percentage of semantic similarity to retrieve pairs of documents
         year: str
             Publication year to be filtered by
-        start: str
-            Offset into the responses at which Solr should begin displaying content
-        rows: str
+        num_records: str
             How many rows of responses are displayed at a time 
 
         Returns
@@ -1267,15 +1269,15 @@ class EWBSolrClient(SolrClient):
         # 5. Execute query (Returns in the score the indexes between the similarities field of each document that are within the range specified in the query)
         q13 = self.querier.customize_Q13(
             model_name=model_name, lower_limit=lower_limit,
-            upper_limit=upper_limit, start=start, rows=rows)
+            upper_limit=upper_limit, year=year, start=start, rows=rows)
         params = {k: v for k, v in q13.items() if k != 'q'}
 
-        sc, indexes_dict = self.execute_query(
+        sc, score = self.execute_query(
             q=q13['q'], col_name=corpus_col, **params)
         
-        df_indexes = pd.DataFrame(indexes_dict.docs) 
+        df_score = pd.DataFrame(score.docs) 
 
-        dict_sims = self.pairs_sims_process(df_indexes, df_indexes, year=year, num_records=rows)
+        dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=num_records)
 
         if sc != 200:
             self.logger.error(
@@ -1283,7 +1285,7 @@ class EWBSolrClient(SolrClient):
             return
 
         self.logger.info(
-                f"-- -- Results object of the QUERY 13: {df_indexes}")
+                f"-- -- Results object of the QUERY 13: {dict_sims}")
 
         return dict_sims, sc
 

@@ -176,8 +176,8 @@ class Queries(object):
         # # Get pairs of documents with a semantic similarity larger than a threshold
         # ================================================================
         self.Q13 = {
-            'q': "{{!vs f=sim_{} vector=\"{},{}\"}}",
-            'fl': "id,score",
+            'q': "{{!vs f=sim_{} vector=\"{},{}\"}} & date:[{}-01-01T00:00:00Z TO {}-12-31T23:59:59Z]",
+            'fl': "id, sim_{}, score",
             'start': '{}',
             'rows': '{}'
         }
@@ -563,6 +563,7 @@ class Queries(object):
                       model_name: str,
                       lower_limit: str,
                       upper_limit: str,
+                      year: str,
                       start: str,
                       rows: str) -> dict:
         
@@ -576,6 +577,8 @@ class Queries(object):
             Lower percentage of semantic similarity to return pairs of documents.
         upper_limit: str
             Upper percentage of semantic similarity to return pairs of documents.
+        year: str
+            Year to filter documents.
         start: str
             Start value.
         rows: str
@@ -588,8 +591,8 @@ class Queries(object):
         """
 
         custom_q13 = {
-            'q': self.Q13['q'].format(model_name, lower_limit, upper_limit),
-            'fl': self.Q13['fl'],
+            'q': self.Q13['q'].format(model_name, lower_limit, upper_limit, year, year),
+            'fl': self.Q13['fl'].format(model_name),
             'start': self.Q13['start'].format(start),
             'rows': self.Q13['rows'].format(rows),
         }
