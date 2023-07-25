@@ -520,16 +520,10 @@ class EWBSolrClient(SolrClient):
         # 0. Rename the 'sim_{model_name}' column to 'similarities'
         sim_model_key = 'sim_' + model_name
         df.rename(columns={sim_model_key: 'similarities'}, inplace=True)
-        self.logger.info(
-                f"-- -- Step 0: {df}")
         # 1. Remove rows with score = 0.00
         df_filtered = df.loc[df['score'] != 0.00].copy()
-        self.logger.info(
-                f"-- -- Step 1: {df_filtered}")
-        # 2. Apply the score filter to the 'similitudes' column
+        # 2. Apply the score filter to the 'similarities' column
         df_filtered['similarities'] = df_filtered.apply(self.indexes_filter, axis=1)
-        self.logger.info(
-                f"-- -- Step 2: {df_filtered}")
         # 3. Remove the 'score' column
         df_filtered.drop(['score'], axis=1, inplace=True)
         # 4. Split the 'similarities' column and create multiple rows
@@ -537,6 +531,7 @@ class EWBSolrClient(SolrClient):
         # 5. Divide the 'similarities' column into two columns: id_similarities and similarities
         df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
         # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
+        df_sims['id'] = df_sims['id'].astype(int)
         df_sims['id_similarities'] = df_sims['id_similarities'].astype(int)
         df_sims['similarities'] = df_sims['similarities'].astype(float)
         # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
@@ -1276,6 +1271,7 @@ class EWBSolrClient(SolrClient):
             q=q13['q'], col_name=corpus_col, **params)
         
         df_score = pd.DataFrame(score.docs) 
+        num_records = int(num_records)
 
         dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=num_records)
 
