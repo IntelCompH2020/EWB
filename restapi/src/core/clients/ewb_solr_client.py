@@ -1219,7 +1219,7 @@ class EWBSolrClient(SolrClient):
                lower_limit: str,
                upper_limit: str,
                year:str,
-               num_records: str) -> Union[dict, int]:
+               num_records: int) -> Union[dict, int]:
         
         """Executes query Q13.
 
@@ -1269,18 +1269,17 @@ class EWBSolrClient(SolrClient):
 
         sc, score = self.execute_query(
             q=q13['q'], col_name=corpus_col, **params)
-        
-        df_score = pd.DataFrame(score.docs) 
-        num_records = int(num_records)
-
-        dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=num_records)
 
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q13. Aborting operation...")
             return
 
-        # 6. Normalize scores
+        # 6. Process the results
+        df_score = pd.DataFrame(score.docs) 
+        dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
+
+        # 7. Normalize scores
         for el in dict_sims:
             el['score'] = 100 * el['score']
 
