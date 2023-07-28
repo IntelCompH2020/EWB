@@ -545,9 +545,9 @@ class EWBSolrClient(SolrClient):
         # 11. Keep only the first num_records rows
         df_sims = df_sims.head(num_records)
         # 12. Rename the columns
-        df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'similarity'}, inplace=True)
+        df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
         # 13. Reorder the columns
-        columns_order = ['id_1', 'id_2', 'similarity']
+        columns_order = ['id_1', 'id_2', 'score']
         df_sims = df_sims.reindex(columns=columns_order)
         
         return df_sims.to_dict('records')
@@ -1280,8 +1280,9 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error executing query Q13. Aborting operation...")
             return
 
-        self.logger.info(
-                f"-- -- Results object of the QUERY 13: {dict_sims}")
+        # 6. Normalize scores
+        for el in dict_sims:
+            el['score'] = 100 * el['score']
 
         return dict_sims, sc
 
