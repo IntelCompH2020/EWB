@@ -37,7 +37,7 @@ services:
    
   initializer:
     image: alpine
-    container_name: solr-initializer
+    container_name: ewb-solr-initializer
     restart: "no"
     entrypoint: |
       /bin/sh -c "chown 8983:8983 /solr"
