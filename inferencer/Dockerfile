@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-apt
 
+# Install wget and unzip
+RUN apt-get update && apt-get install -y wget unzip
+
 RUN apt install python-is-python3
 
 # Install Java
@@ -36,6 +39,21 @@ RUN export JAVA_HOME
 WORKDIR /inferencer
 
 COPY . .
+
+# Download Mallet
+RUN wget https://mallet.cs.umass.edu/dist/mallet-2.0.8.zip
+
+# Extract the contents of the zip file
+RUN unzip mallet-2.0.8.zip
+
+# Remove the zip file
+RUN rm mallet-2.0.8.zip
+
+# Remove old mallet if exists
+RUN rm -rf /inferencer/src/core/models/mallet-2.0.8
+
+# Copy the Mallet's decompressed folder into the Mallet directory
+RUN mv mallet-2.0.8 /inferencer/src/core/models
 
 RUN mkdir -p /data/source
 RUN mkdir -p /data/inference
