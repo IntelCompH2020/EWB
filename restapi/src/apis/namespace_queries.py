@@ -135,9 +135,7 @@ q13_parser.add_argument(
 q13_parser.add_argument(
     'year', help='Publication year to be filtered by', required=True)
 q13_parser.add_argument(
-    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
-q13_parser.add_argument(
-    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+    'num_records', help='Controls how many pairs of documents are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
 q14_parser = reqparse.RequestParser()
 q14_parser.add_argument(
@@ -359,16 +357,14 @@ class getPairsOfDocsWithHighSim(Resource):
         lower_limit = args['lower_limit']
         upper_limit = args['upper_limit']
         year = args['year']
-        start = args['start']
-        rows = args['rows']
+        num_records = args['num_records']
 
         return sc.do_Q13(corpus_col=corpus_collection,
                         model_name=model_name,
                         lower_limit=lower_limit,
                         upper_limit=upper_limit,
                         year=year,
-                        start=start,
-                        rows=rows)
+                        num_records=num_records)
 
 @api.route('/getDocsSimilarToFreeText/')
 class getDocsSimilarToFreeText(Resource):

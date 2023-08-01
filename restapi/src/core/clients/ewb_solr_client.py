@@ -8,6 +8,7 @@ Date: 17/04/2023
 import configparser
 import logging
 import pathlib
+import pandas as pd
 from typing import List, Union
 
 from src.core.clients.base.solr_client import SolrClient
@@ -490,6 +491,66 @@ class EWBSolrClient(SolrClient):
                 return
 
         return start, rows
+    
+    def indexes_filter(self, row):
+        """Auxiliary function to filter the 'similarities' column by the 'indexes' column.
+        It is used inside an apply function in pandas, so it iterates over the rows of the DataFrame.
+        """
+        indexes = str(row['score']).split('.')
+        lower_limit = int(indexes[0])
+        upper_limit = int(indexes[1]) + 1
+        similarities = row['similarities'].split(" ")
+        filtered_similarities = similarities[lower_limit:upper_limit]
+
+        return ' '.join(filtered_similarities)
+
+    def pairs_sims_process(self, df: pd.DataFrame, model_name: str, num_records: int):
+        """Function to process the pairs of documents in descendent order by the similarities for a given year.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame with documents id, similarities and score.
+
+        Returns
+        -------
+        df_sims: list
+            List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
+        """
+        # 0. Rename the 'sim_{model_name}' column to 'similarities'
+        sim_model_key = 'sim_' + model_name
+        df.rename(columns={sim_model_key: 'similarities'}, inplace=True)
+        # 1. Remove rows with score = 0.00
+        df_filtered = df.loc[df['score'] != 0.00].copy()
+        # 2. Apply the score filter to the 'similarities' column
+        df_filtered['similarities'] = df_filtered.apply(self.indexes_filter, axis=1)
+        # 3. Remove the 'score' column
+        df_filtered.drop(['score'], axis=1, inplace=True)
+        # 4. Split the 'similarities' column and create multiple rows
+        df_sims = df_filtered.assign(similarities=df_filtered['similarities'].str.split(' ')).explode('similarities')
+        # 5. Divide the 'similarities' column into two columns: id_similarities and similarities
+        df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
+        # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
+        df_sims['id'] = df_sims['id'].astype(int)
+        df_sims['id_similarities'] = df_sims['id_similarities'].astype(int)
+        df_sims['similarities'] = df_sims['similarities'].astype(float)
+        # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
+        df_sims = df_sims[df_sims['id_similarities'].isin(df_sims['id'])]
+        # 8. Remove rows where the values of "id" and "id_similarities" match (same document)
+        df_sims = df_sims[df_sims['id'] != df_sims['id_similarities']]
+        # 9. Sort the DataFrame from highest to lowest based on the "similarities" field
+        df_sims = df_sims.sort_values(by='similarities', ascending=False)
+        # 10. Reset the DataFrame index
+        df_sims.reset_index(drop=True, inplace=True)
+        # 11. Keep only the first num_records rows
+        df_sims = df_sims.head(num_records)
+        # 12. Rename the columns
+        df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
+        # 13. Reorder the columns
+        columns_order = ['id_1', 'id_2', 'score']
+        df_sims = df_sims.reindex(columns=columns_order)
+        
+        return df_sims.to_dict('records')
 
     # ======================================================
     # QUERIES
@@ -1158,8 +1219,7 @@ class EWBSolrClient(SolrClient):
                lower_limit: str,
                upper_limit: str,
                year:str,
-               start: str,
-               rows: str) -> Union[dict, int]:
+               num_records: int) -> Union[dict, int]:
         
         """Executes query Q13.
 
@@ -1175,9 +1235,7 @@ class EWBSolrClient(SolrClient):
             Upper percentage of semantic similarity to retrieve pairs of documents
         year: str
             Publication year to be filtered by
-        start: str
-            Offset into the responses at which Solr should begin displaying content
-        rows: str
+        num_records: str
             How many rows of responses are displayed at a time 
 
         Returns
@@ -1200,34 +1258,32 @@ class EWBSolrClient(SolrClient):
         if not self.check_corpus_has_model(corpus_col, model_name):
             return
 
-        # 4. Customize start and rows
-        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
+        # 3. Return total number of documents in the collection.
+        start, rows = self.custom_start_and_rows(None, None, corpus_col)
 
-        # 5. Execute query
+        # 5. Execute query (Returns in the score the indexes between the similarities field of each document that are within the range specified in the query)
         q13 = self.querier.customize_Q13(
             model_name=model_name, lower_limit=lower_limit,
-            upper_limit=upper_limit, start=start, rows=rows)
+            upper_limit=upper_limit, year=year, start=start, rows=rows)
         params = {k: v for k, v in q13.items() if k != 'q'}
 
-        self.logger.info(
-                f"-- -- Antes de ejecutar la query")
-
-        sc, results = self.execute_query(
+        sc, score = self.execute_query(
             q=q13['q'], col_name=corpus_col, **params)
-        
-        self.logger.info(
-                f"-- -- Después de ejecutar la query")
 
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q13. Aborting operation...")
             return
 
-        # 6. Normalize scores
-        for el in results.docs:
-            el['score'] *= (100/(self.max_sum ^ 2))
+        # 6. Process the results
+        df_score = pd.DataFrame(score.docs) 
+        dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
 
-        return results.docs, sc
+        # 7. Normalize scores
+        for el in dict_sims:
+            el['score'] = 100 * el['score']
+
+        return dict_sims, sc
 
     def do_Q14(self,
                corpus_col: str,

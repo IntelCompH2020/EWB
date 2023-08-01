@@ -15,4 +15,4 @@ if __name__ == '__main__':
     cprint(figlet_format("EWB API",
            font='big'), 'blue', attrs=['bold'])
     print('\n')
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=82, debug=True)
