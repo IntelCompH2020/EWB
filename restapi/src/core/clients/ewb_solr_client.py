@@ -549,21 +549,23 @@ class EWBSolrClient(SolrClient):
         df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
         # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
         df_sims['id'] = df_sims['id'].astype(int)
+        # 7. Filter rows where 'id_similarities' is empty
+        df_sims = df_sims[df_sims['id_similarities'] != '']
         df_sims['id_similarities'] = df_sims['id_similarities'].astype(int)
         df_sims['similarities'] = df_sims['similarities'].astype(float)
-        # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
+        # 8. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
         df_sims = df_sims[df_sims['id_similarities'].isin(df_sims['id'])]
-        # 8. Remove rows where the values of "id" and "id_similarities" match (same document)
+        # 9. Remove rows where the values of "id" and "id_similarities" match (same document)
         df_sims = df_sims[df_sims['id'] != df_sims['id_similarities']]
-        # 9. Sort the DataFrame from highest to lowest based on the "similarities" field
+        # 10. Sort the DataFrame from highest to lowest based on the "similarities" field
         df_sims = df_sims.sort_values(by='similarities', ascending=False)
-        # 10. Reset the DataFrame index
+        # 11. Reset the DataFrame index
         df_sims.reset_index(drop=True, inplace=True)
-        # 11. Keep only the first num_records rows
+        # 12. Keep only the first num_records rows
         df_sims = df_sims.head(num_records)
-        # 12. Rename the columns
+        # 13. Rename the columns
         df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
-        # 13. Reorder the columns
+        # 14. Reorder the columns
         columns_order = ['id_1', 'id_2', 'score']
         df_sims = df_sims.reindex(columns=columns_order)
         
