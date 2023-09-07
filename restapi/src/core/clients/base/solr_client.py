@@ -207,7 +207,7 @@ class SolrClient(object):
     def _do_request(self,
                     type: str,
                     url: str,
-                    timeout: int = 10,
+                    timeout: int = None,
                     **params) -> SolrResp:
         """Sends a requests to the given url with the given params and returns an object of the SolrResp class
 

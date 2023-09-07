@@ -305,6 +305,10 @@ class EWBSolrClient(SolrClient):
         else:
             self.logger.info(
                 f"-- -- Collection {model_name} successfully created.")
+            
+        metadata = self.do_Q2("cordis")
+        self.logger.info(
+            f"-- -- Metadata of {self.corpus_col} before creating the model: {metadata}")
 
         # 3. Create Model object and extract info from the corpus to index
         model = Model(model_to_index)
@@ -318,6 +322,10 @@ class EWBSolrClient(SolrClient):
             return
         field_update = model.get_corpora_model_update(
             id=results.docs[0]["id"], action='add')
+        
+        metadata = self.do_Q2("cordis")
+        self.logger.info(
+            f"-- -- Metadata of {self.corpus_col} before adding the doc-tpc distribution: {metadata}")
 
         # 4. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
         self.logger.info(
@@ -325,6 +333,10 @@ class EWBSolrClient(SolrClient):
         self.index_documents(field_update, self.corpus_col, self.batch_size)
         self.logger.info(
             f"-- -- Indexing of model information of {model_name} info in {self.corpus_col} completed.")
+        
+        metadata = self.do_Q2("cordis")
+        self.logger.info(
+            f"-- -- Metadata of {self.corpus_col} before modifying the schema: {metadata}")  
 
         # 5. Modify schema in corpus collection to add field for the doc-tpc distribution and the similarities associated with the model being indexed
         model_key = 'doctpc_' + model_name
@@ -337,6 +349,11 @@ class EWBSolrClient(SolrClient):
             f"-- -- Adding field {sim_model_key} in {corpus_name} collection")
         _, err = self.add_field_to_schema(
             col_name=corpus_name, field_name=sim_model_key, field_type='VectorFloatField')
+        
+
+        metadata = self.do_Q2("cordis")
+        self.logger.info(
+            f"-- -- Metadata of {self.corpus_col} before indexing doc-tpc information: {metadata}")  
 
         # 6. Index doc-tpc information in corpus collection
         self.logger.info(
@@ -610,9 +627,10 @@ class EWBSolrClient(SolrClient):
             resp = {'thetas': -1}
 
         return resp, sc
-
+    
     def do_Q2(self, corpus_col: str) -> Union[dict, int]:
-        """Executes query Q2.
+        """
+        Executes query Q2.
 
         Parameters
         ----------
@@ -646,11 +664,13 @@ class EWBSolrClient(SolrClient):
             return
 
         # Filter out metadata fields that we don't consider metadata
+        #meta_fields = [field for field in results.docs[0]
+                       #['fields'] if field not in self.no_meta_fields and not field.startswith("doctpc_")]
         meta_fields = [field for field in results.docs[0]
-                       ['fields'] if field not in self.no_meta_fields and not field.startswith("doctpc_")]
-
+                       ['fields'] if field not in self.no_meta_fields]
+        
         return {'metadata_fields': meta_fields}, sc
-
+    
     def do_Q3(self, col: str) -> Union[dict, int]:
         """Executes query Q3.
 

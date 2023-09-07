@@ -273,12 +273,17 @@ class Model(object):
 
                 return sim_str
 
-            sim_rpr = get_doc_by_doc_sims(self.sims, ids_corpus)
+            #sim_rpr = get_doc_by_doc_sims(self.sims, ids_corpus)
+
+            with open(self.path_to_model.joinpath("TMmodel").joinpath('distances.txt'), 'r') as f:
+                sim_rpr = [line.strip() for line in f]
             self._logger.info(
                 "Thetas and sims attained. Creating dataframe...")
             # Save the information in a dataframe
             df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
                               columns=['id', model_key, sim_model_key])
+            self._logger.info(
+            f"Dataframe created. Printing it:{df.columns.tolist()}")
             # self._logger.info("Merging dataframes...")
             # df = pd.merge(df, df_orig_ids, on=['id'], how='outer').fillna("")
 
