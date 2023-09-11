@@ -30,6 +30,7 @@ inferencers = {
 
 # ======================================================
 # Define parsers to take inputs from user
+# ======================================================
 infer_doc_parser = reqparse.RequestParser()
 infer_doc_parser.add_argument('text_to_infer',
                               help='Text to be inferred',

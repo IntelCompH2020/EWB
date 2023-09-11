@@ -3,6 +3,10 @@ version: "3.8"
 networks:
   ewb-net:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.128.0/24
 
 services:
   restapi:
@@ -33,6 +37,17 @@ services:
     volumes:
       - ./data/source:/data/source
       - ./data/inference:/data/inference
+      - ./ewb_config:/config
+
+  classifier:
+    build: ./classifier
+    container_name: ewb-classifier
+    ports:
+      - 100:100
+    networks:
+      - ewb-net
+    volumes:
+      - ./data/classifier:/data/classifier
       - ./ewb_config:/config
    
   initializer:

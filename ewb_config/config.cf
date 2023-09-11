@@ -18,6 +18,8 @@ no_meta_fields=rawtext,lemmas,all_lemmas,_version_
 max_sum=1000
 max_sum_neural_models=100000
 
+[classifier]
+cache_dir=/data/classifer/models
 
 # There will be one of this for each corpus avaialable at the EWB
 [cordis-config]

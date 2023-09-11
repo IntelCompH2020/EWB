@@ -11,9 +11,11 @@ import logging
 import os
 
 import requests
+from src.core.clients.external.api_generic.client import Client
+from src.core.clients.external.api_generic.response import Response
 
 
-class InferencerResponse(object):
+class InferencerResponse(Response):
     """
     A class to handle Inferencer API response and errors.
     """
@@ -22,22 +24,11 @@ class InferencerResponse(object):
                  resp: requests.Response,
                  logger: logging.Logger) -> None:
 
-        # Get JSON object of the result
-        resp = resp.json()
-
-        self.status_code = resp['responseHeader']['status']
-        self.time = resp['responseHeader']['time']
-        self.results = resp['response']
-
-        if self.status_code == 200:
-            logger.info(f"-- -- Inferencer request acknowledged")
-        else:
-            logger.info(
-                f"-- -- Inference request generated an error: {self.results['error']}")
+        super().__init__(resp, logger)
         return
 
 
-class EWBInferencerClient(object):
+class EWBInferencerClient(Client):
     """
     A class to handle EWB Inferencer API requests.
     """
@@ -50,18 +41,14 @@ class EWBInferencerClient(object):
             The logger object to log messages and errors.
         """
 
+        super().__init__(logger, "Inferencer")
+        
         # Get the Inferencer URL from the environment variables
         self.inferencer_url = os.environ.get('INFERENCE_URL')
 
         # Initialize requests session and logger
         self.inferencer = requests.Session()
-
-        if logger:
-            self.logger = logger
-        else:
-            import logging
-            logging.basicConfig(level='DEBUG')
-            self.logger = logging.getLogger('Inferencer')
+        
         return
 
     def _do_request(self,
@@ -89,23 +76,8 @@ class EWBInferencerClient(object):
         """
 
         # Send request
-        if type == "get":
-            resp = requests.get(
-                url=url,
-                timeout=timeout,
-                **params
-            )
-            pass
-        elif type == "post":
-            resp = requests.post(
-                url=url,
-                timeout=timeout,
-                **params
-            )
-        else:
-            self.logger.error(f"-- -- Invalid type {type}")
-            return
-
+        resp = super()._do_request(type, url, timeout, **params)
+        
         # Parse Inference response
         inf_resp = InferencerResponse(resp, self.logger)
 

@@ -10,9 +10,9 @@ import logging
 import pathlib
 import pandas as pd
 from typing import List, Union
-
+from src.core.clients.external.ewb_classifier_client import EWBClassifierClient
+from src.core.clients.external.ewb_inferencer_client import EWBInferencerClient
 from src.core.clients.base.solr_client import SolrClient
-from src.core.clients.ewb_inferencer_client import EWBInferencerClient
 from src.core.entities.corpus import Corpus
 from src.core.entities.model import Model
 from src.core.entities.queries import Queries
@@ -38,7 +38,7 @@ class EWBSolrClient(SolrClient):
 
         # Create InferencerClient to send requests to the Inferencer API
         self.inferencer = EWBInferencerClient(logger)
-
+        
         return
 
     # ======================================================

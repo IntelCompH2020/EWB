@@ -4,7 +4,7 @@
 
 The Evaluation Workbench Python Dockers form a multi-container application that includes essential components such as the Solr cluster, RESTful API, and inference service. These Docker containers enable data ingestion, information retrieval, and topic and class inference capabilities within the Evaluation Workbench.
 
-![Python Dockers](https://github.com/IntelCompH2020/EWB/blob/main/static/Images/ewb-python-dockers.png)
+![Python Dockers](https://github.com/IntelCompH2020/EWB/blob/main/static/Images/ewb-architecture.png)
 
 ## Requirements
 

@@ -12,7 +12,7 @@ app.config["RESTX_MASK_SWAGGER"] = False
 api.init_app(app)
 
 if __name__ == '__main__':
-    cprint(figlet_format("Inferencer Service API",
+    cprint(figlet_format("Classification Service API",
            font='big'), 'red', attrs=['bold'])
     print('\n')
-    app.run(host='0.0.0.0', port=90, debug=True)
+    app.run(host='0.0.0.0', port=100, debug=True)

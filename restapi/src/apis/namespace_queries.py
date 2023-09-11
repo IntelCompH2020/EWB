@@ -173,6 +173,12 @@ q17_parser.add_argument(
 q17_parser.add_argument(
     'word', help='Word of interest to retrieve its topic-word distribution in the specified topic. If the word is not present, the distribution is 0.', required=True)
 
+classify_parser = reqparse.RequestParser()
+classify_parser.add_argument('text',
+                              help='Text to be classified',
+                              required=True)
+classify_parser.add_argument('taxonmy',
+                              help='Taxonomy to be used for the classification', required=True)
 
 @api.route('/getThetasDocById/')
 class getThetasDocById(Resource):
@@ -424,3 +430,16 @@ class getBetasByWordAndTopicId(Resource):
         return sc.do_Q17(model_name=model_name,
                          tpc_id=tpc_id,
                          word=word)
+
+
+@api.route('/classify_doc/')
+class ClassifyDoc(Resource):
+    @api.doc(parser=classify_parser)
+    def post(self):
+        args = classify_parser.parse_args()
+        text = args['text']
+        taxonomy = args['taxonmy']
+        try:
+            return sc.classify(text, taxonomy), 200
+        except Exception as e:
+            return str(e), 500
