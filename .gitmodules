@@ -1,6 +1,6 @@
-[submodule "solr-ewb-jensen-shanon-distance-plugin"]
-	path = solr-ewb-jensen-shanon-distance-plugin
+[submodule "solr_plugins/solr-ewb-sims"]
+	path = solr_plugins/solr-ewb-sims
+	url = https://github.com/IntelCompH2020/solr-ewb-sims.git
+[submodule "solr_plugins/solr-ewb-jensen-shanon-distance-plugin"]
+	path = solr_plugins/solr-ewb-jensen-shanon-distance-plugin
 	url = https://github.com/Nemesis1303/solr-ewb-jensen-shanon-distance-plugin.git
-[submodule "solr-ewb-sims"]
-	path = solr-ewb-sims
-	url = https://github.com/albertomendoza98/solr-ewb-sims.git

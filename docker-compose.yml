@@ -10,8 +10,8 @@ networks:
 
 services:
   restapi:
-    build: ./restapi
-    container_name: ewb-restapi
+    build: ./ewb-tm
+    container_name: ewb-tm
     ports:
       - 82:82
     environment:
@@ -28,7 +28,7 @@ services:
       - ./ewb_config:/config
   
   inferencer:
-    build: ./inferencer
+    build: ./ewb-inferencer
     container_name: ewb-inferencer
     ports:
       - 90:90
@@ -40,7 +40,7 @@ services:
       - ./ewb_config:/config
 
   classifier:
-    build: ./classifier
+    build: ./ewb-classifier
     container_name: ewb-classifier
     ports:
       - 100:100
@@ -65,8 +65,8 @@ services:
     restart: always
     volumes:
       - ./db/data/solr:/var/solr
-      - ./solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
-      - ./solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
+      - ./solr_plugins/solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
+      - ./solr_plugins/solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
       - ./solr_config:/opt/solr/server/solr
     ports:
       - 8983:8983

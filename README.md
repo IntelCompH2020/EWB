@@ -1,37 +1,58 @@
-# Intelcomp's Evaluation Workbench (EWB) Python Dockers
+# Intelcomp's Evaluation Workbench (EWB) API Dockers
+
+- [Intelcomp's Evaluation Workbench (EWB) API Dockers](#intelcomps-evaluation-workbench-ewb-api-dockers)
+  - [Overview](#overview)
+  - [Main components](#main-components)
+    - [Topic Modeling Service](#topic-modeling-service)
+    - [Inference Service](#inference-service)
+    - [Classification Service](#classification-service)
+  - [Requirements](#requirements)
+  - [Sample data to start using the EWB API Dockers](#sample-data-to-start-using-the-ewb-api-dockers)
 
 ## Overview
 
-The Evaluation Workbench Python Dockers form a multi-container application that includes essential components such as the Solr cluster, RESTful API, and inference service. These Docker containers enable data ingestion, information retrieval, and topic and class inference capabilities within the Evaluation Workbench.
+The Evaluation Workbench (EWB) API Dockers comprise a multi-container application that includes essential components like the Solr cluster and REST APIs for Topic Modeling, Inference, and Classification services. This multi-container application is orchestrated using a docker-compose script, connecting all services through the `ewb-net` network.
 
-![Python Dockers](https://github.com/IntelCompH2020/EWB/blob/main/static/Images/ewb-architecture.png)
+![Python Dockers](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/ewb-architecture2.png)
+
+## Main components
+
+### Topic Modeling Service
+
+This service comprises a RESTful API that utilizes the Solr search engine for data storage and retrieval. It enables the indexing of logical corpora and associated topic models, formatted according to the specifications provided by the [``topicmodeler``](https://github.com/IntelCompH2020/topicmodeler). Additionally, it facilitates information retrieval through a set of queries.
+
+This system relies on the following services:
+
+1. **ewb-tm**: This service hosts the Topic Modeling's RESTful API server. It is constructed using the Dockerfile located in the ``ewb-tm`` directory. It has dependencies on the Solr service and requires access to the following mounted volumes: ``./data/source``, ``./data/inference``, and ``./ewb_config``. These volumes are crucial for accessing necessary data from the ITMT (the project folder containing the topic models) and for delivering results obtained through the EWB or generated via the Inference service. The ``ewb_config`` volume also houses some important configuration variables.
+
+2. **ewb-solr**: This service operates the Solr search engine. It employs the official Solr image from Docker Hub and relies on the zoo service. The service mounts several volumes, including:
+
+   - The **Solr data directory** (``./db/data/solr:/var/solr``) for data persistence.
+   - Two **custom Solr plugins**:
+     - [solr-ewb-jensen-shanon-distance-plugin](https://github.com/Nemesis1303/solr-ewb-jensen-shanon-distance-plugin) for utilizing the Jensen–Shannon divergence as a vector scoring method.
+     - [solr-ewb-jensen-sims](https://github.com/IntelCompH2020/solr-ewb-sims) for retrieving documents with similarities within a specified range.
+   - The **Solr configuration directory** (``./solr_config:/opt/solr/server/solr``) to access the specific Solr schemas for EWB.
+
+3. **ewb-solr-initializer**: This service is temporary and serves the sole purpose of initializing the mounted volume ``/db/data`` with the necessary permissions required by Solr.
+
+4. **ewb-zoo**: This service runs Zookeeper, which is essential for Solr to coordinate cluster nodes. It employs the official zookeeper image and mounts two volumes for data and logs.
+
+5. **ewb-solr-config**: This service handles Solr configuration. It is constructed using the Dockerfile located in the ``solr_config`` directory. This service has dependencies on the Solr and zoo services and mounts the Docker socket and the ``bash_scripts`` directory, which contains a script for initializing the Solr configuration for EWB.
+
+### Inference Service
+
+This service serves as a Topic Model Inferencer, constructed using the Dockerfile found in the ``ewb-inferencer`` directory. It relies on access to mounted volumes at ``./data/source``, ``./data/inference``, and ``./ewb_config``.
+
+Its primary purpose is to be used internally by the Topic Modeling Service, although it can also function as a standalone component.
+
+### Classification Service
+
+This service serves as an inference system for hierarchical classification, built on top of the [``clf-inference-intelcomp``](https://pypi.org/project/clf-inference-intelcomp/) library, that allows to classify texts based on a given hierarchy of language models. It relies on access to mounted volumes at ``./data/classifier`` and ``./ewb_config``.
 
 ## Requirements
 
-- **Python requirements files** ([``ewb-restapi requirements``](https://github.com/IntelCompH2020/EWB/blob/main/restapi/requirements.txt) and [``inferencer requirements``](https://github.com/IntelCompH2020/EWB/blob/main/inferencer/requirements.txt)).
+**Python requirements files** ([``ewb-tm``](https://github.com/IntelCompH2020/EWB/blob/main/restapi/requirements.txt), [``ewb-inferencer``](https://github.com/IntelCompH2020/EWB/blob/main/inferencer/requirements.txt) and [``ewb-classifier``](https://github.com/IntelCompH2020/EWB/blob/development/classifier/requirements.txt)).
 
-   > *Note that the requirements are directly installed in their respective services at the building-up time.*
+> *Note that the requirements are directly installed in their respective services at the building-up time.*
 
-- **Mallet package:** It needs to be downloaded from [``Mallet’s official website``](https://github.com/IntelCompH2020/EWB/blob/main/restapi/requirements.txt) into the following route: ```“/inferencer/src/core/models/mallet-2.0.8”```.
-
-## Docker Compose Script
-
-The Docker Compose script sets up an environment for the EWB's RESTful API server that relies on a Solr search engine for data storage and retrieval.
-
-### Description of services
-
-The script builts a multi-container application consising of five services, all of them using the ``ewb-net`` network.
-
-1. ``restapi (ewb-restapi)`` - This service is responsible for running the EWB's RESTful API server. It is built using the Dockerfile located in the ``restapi`` directory. It depends on the Solr service and requires access to the volume mounted at ``"./data/source"``,``"./data/inference"`` and ``"./ewb_config"``. These volumes are used to access any data needed from the ITMT (i.e., the project folder in which the topic models are saved) and to provide the results obtained through the EWB or generated through the Inference service. In addition, the last one host some configuration variables.
-
-2. ``solr (ewb-solr)`` - This service runs the Solr search engine. It uses the official Solr image from Docker Hub and depends on the zoo service. The service mounts several volumes, including:
-
-   - the **Solr data directory**, for giving persistence.
-   - the **custom Solr plugin** ([``solr-ewb-jensen-shanon-distance-plugin``](https://github.com/Nemesis1303/solr-ewb-jensen-shanon-distance-plugin)) for using the Jensen–Shannon divergence as vector scoring method.
-   - the **Solr configuration directory**, to access the specifc EWB's Solr schemas
-
-3. ``zoo (ewb-zoo)`` - This service runs Zookeeper, which is required by Solr to coordinate cluster nodes. It uses the official zookeeper image. The service mounts two volumes for data and logs.
-
-4. ``solr-config (ewb-solr-config)`` - This service is responsible for configuring Solr. It is built using the Dockerfile located in the ``"solr_config"`` directory. The service uses the ewb-net network and depends on the solr and zoo services. It mounts the Docker socket and the bash_scripts directory, which includes a script for initializing the Solr configuration for the EWB.
-
-5. ``inferencer (ewb-inferencer)``- This service hosts a Topic Model Inferencer. It is built using the Dockerfile located at the ``"inferencer"`` directory and requires acces to the volumes mounted at ``"./data/source"``, ``"./data/inference"`` and ``"./ewb_config"``. 
+## Sample data to start using the EWB API Dockers
