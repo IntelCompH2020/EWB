@@ -53,7 +53,7 @@ Its primary purpose is to be used internally by the Topic Modeling Service, alth
 
 This service serves as an inference system for hierarchical classification, built on top of the [``clf-inference-intelcomp``](https://pypi.org/project/clf-inference-intelcomp/) library, that allows to classify texts based on a given hierarchy of language models. It relies on access to mounted volumes at ``./data/classifier`` and ``./ewb_config``.
 
-![EWB's Classifier Api](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/tm_api.png)
+![EWB's Classifier Api](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/classifier_api.png)
 
 ## Requirements
 
