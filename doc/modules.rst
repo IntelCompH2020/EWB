@@ -4,4 +4,6 @@ ewb-classifier
 .. toctree::
    :maxdepth: 4
 
-   ewb-classifier
+   ewb-tm.rst
+   ewb-classifier.rst
+   ewb-inferencer.rst
