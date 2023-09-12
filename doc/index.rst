@@ -13,5 +13,4 @@ Basics
    purpose.rst
    dependencies.rst
    usage.rst
-   queries.rst
    credit.rst

@@ -137,3 +137,5 @@ ewb-inferencer/src/core/models/mallet-2.0.8
 
 # vscode
 .vscode
+
+_build

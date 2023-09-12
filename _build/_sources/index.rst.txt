@@ -14,4 +14,3 @@ Basics
    dependencies.rst
    usage.rst
    credit.rst
-   exercises.rst
