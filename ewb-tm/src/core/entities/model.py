@@ -246,32 +246,32 @@ class Model(object):
             # Get similarities string representation
             self._logger.info("Attaining sims rpr...")
 
-            def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
-                """
-                Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed.
+            # def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
+            #     """
+            #     Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed.
 
-                Parameters
-                ----------
-                W: scipy.sparse.csr_matrix
-                    Sparse matrix with the similarities between each pair of documents in the corpus collection.
-                ids_corpus: List[str]
-                    List of ids of the documents in the corpus collection.
+            #     Parameters
+            #     ----------
+            #     W: scipy.sparse.csr_matrix
+            #         Sparse matrix with the similarities between each pair of documents in the corpus collection.
+            #     ids_corpus: List[str]
+            #         List of ids of the documents in the corpus collection.
 
-                Returns:
-                --------
-                sims: List[str]
-                    List of string represenation of the top similarities between each pair of documents in the corpus collection.
-                """
+            #     Returns:
+            #     --------
+            #     sims: List[str]
+            #         List of string represenation of the top similarities between each pair of documents in the corpus collection.
+            #     """
 
-                # Get the non-zero elements indices
-                non_zero_indices = W.nonzero()
+            #     # Get the non-zero elements indices
+            #     non_zero_indices = W.nonzero()
 
-                # Convert to a string
-                sim_str = \
-                    [' '.join([f"{ids_corpus[col]}|{W[row, col]}" for col in non_zero_indices[1]
-                              [non_zero_indices[0] == row]][1:]) for row in range(W.shape[0])]
+            #     # Convert to a string
+            #     sim_str = \
+            #         [' '.join([f"{ids_corpus[col]}|{W[row, col]}" for col in non_zero_indices[1]
+            #                   [non_zero_indices[0] == row]][1:]) for row in range(W.shape[0])]
 
-                return sim_str
+            #     return sim_str
 
             #sim_rpr = get_doc_by_doc_sims(self.sims, ids_corpus)
 
@@ -279,6 +279,7 @@ class Model(object):
                 sim_rpr = [line.strip() for line in f]
             self._logger.info(
                 "Thetas and sims attained. Creating dataframe...")
+            
             # Save the information in a dataframe
             df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
                               columns=['id', model_key, sim_model_key])
