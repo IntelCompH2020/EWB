@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-tm.src
+   ewb-tm.src.rst
 
 Submodules
 ----------
@@ -15,7 +15,7 @@ Submodules
 ewb\-tm.app module
 ------------------
 
-.. automodule:: ewb-tm.app
+.. automodule:: ewb-tm.app.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ewb\-tm.app module
 Module contents
 ---------------
 
-.. automodule:: ewb-tm
+.. automodule:: ewb-tm.rest
    :members:
    :undoc-members:
    :show-inheritance:

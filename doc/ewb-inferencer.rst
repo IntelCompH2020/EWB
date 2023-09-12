@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-inferencer.src
+   ewb-inferencer.src.rst
 
 Submodules
 ----------
@@ -15,7 +15,7 @@ Submodules
 ewb\-inferencer.app module
 --------------------------
 
-.. automodule:: ewb-inferencer.app
+.. automodule:: ewb-inferencer.app.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ewb\-inferencer.app module
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer
+.. automodule:: ewb-inferencer.rst
    :members:
    :undoc-members:
    :show-inheritance:

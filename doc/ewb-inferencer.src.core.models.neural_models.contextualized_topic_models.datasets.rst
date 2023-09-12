@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.datasets.dataset module
 ----------------------------------------------------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.datasets.dataset
+.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.datasets.dataset.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.dat
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.datasets
+.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.datasets.rst
    :members:
    :undoc-members:
    :show-inheritance:

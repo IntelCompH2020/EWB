@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.core.models.neural\_models.pytorchavitm.datasets.bow\_dataset module
 ----------------------------------------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.datasets.bow_dataset
+.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.datasets.bow_dataset.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.core.models.neural\_models.pytorchavitm.datasets.bow\_datase
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.datasets
+.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.datasets.rst
    :members:
    :undoc-members:
    :show-inheritance:

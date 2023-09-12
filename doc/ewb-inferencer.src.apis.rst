@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.apis.namespace\_infer module
 ------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.apis.namespace_infer
+.. automodule:: ewb-inferencer.src.apis.namespace_infer.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.apis.namespace\_infer module
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.apis
+.. automodule:: ewb-inferencer.src.apis.rst
    :members:
    :undoc-members:
    :show-inheritance:

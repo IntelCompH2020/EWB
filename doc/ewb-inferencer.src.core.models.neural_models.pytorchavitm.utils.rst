@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.core.models.neural\_models.pytorchavitm.utils.data\_preparation module
 ------------------------------------------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.utils.data_preparation
+.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.utils.data_preparation.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.core.models.neural\_models.pytorchavitm.utils.data\_preparat
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.utils
+.. automodule:: ewb-inferencer.src.core.models.neural_models.pytorchavitm.utils.rst
    :members:
    :undoc-members:
    :show-inheritance:

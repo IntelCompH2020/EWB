@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-tm.src.core.clients.external.api_generic
+   ewb-tm.src.core.clients.external.api_generic.rst
 
 Submodules
 ----------
@@ -15,7 +15,7 @@ Submodules
 ewb\-tm.src.core.clients.external.ewb\_inferencer\_client module
 ----------------------------------------------------------------
 
-.. automodule:: ewb-tm.src.core.clients.external.ewb_inferencer_client
+.. automodule:: ewb-tm.src.core.clients.external.ewb_inferencer_client.rst
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ewb\-tm.src.core.clients.external.ewb\_inferencer\_client module
 Module contents
 ---------------
 
-.. automodule:: ewb-tm.src.core.clients.external
+.. automodule:: ewb-tm.src.core.clients.external.rst
    :members:
    :undoc-members:
    :show-inheritance:
