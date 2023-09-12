@@ -79,7 +79,7 @@ class DeleteCollection(Resource):
 class ListCollections(Resource):
     def get(self):
         try:
-            return sc.list_collections(), 200
+            return sc.list_collections()
         except Exception as e:
             return str(e), 500
 

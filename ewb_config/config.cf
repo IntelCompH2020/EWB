@@ -8,7 +8,7 @@ cons_level = DEBUG
 cons_format = %%(levelname)-8s | %%(message)s
 
 [mallet]
-mallet_path=/inferencer/src/core/models/mallet-2.0.8/bin/mallet
+mallet_path=/ewb-inferencer/src/core/models/mallet-2.0.8/bin/mallet
 
 [restapi]
 #Default setting for number of topics

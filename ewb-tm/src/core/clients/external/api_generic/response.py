@@ -11,7 +11,7 @@ class Response(object):
                  resp: requests.Response,
                  logger: logging.Logger) -> None:
 
-        # Get JSON object of the result
+        # Get JSON object of the result        
         resp = resp.json()
 
         self.status_code = resp['responseHeader']['status']

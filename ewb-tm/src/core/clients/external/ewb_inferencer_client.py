@@ -112,7 +112,7 @@ class EWBInferencerClient(Client):
 
         # Send request to Inferencer
         inf_resp = self._do_request(
-            type="post", url=url_, timeout=120, headers=headers_, params=params_)
+            type="get", url=url_, timeout=120, headers=headers_, params=params_)
 
         return inf_resp
 
