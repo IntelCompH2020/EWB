@@ -14,3 +14,12 @@ Basics
    dependencies.rst
    usage.rst
    credit.rst
+
+
+Modules
+==========
+
+.. toctree::
+   :maxdepth: 2
+
+   modules.rst
