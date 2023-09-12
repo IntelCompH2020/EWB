@@ -7,13 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-inferencer.src.apis.rst
-   ewb-inferencer.src.core.rst
+   ewb-inferencer.src.apis
+   ewb-inferencer.src.core
 
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.rst
+.. automodule:: ewb-inferencer.src
    :members:
    :undoc-members:
    :show-inheritance:

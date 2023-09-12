@@ -7,13 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.rst
-   ewb-inferencer.src.core.models.neural_models.pytorchavitm.rst
+   ewb-inferencer.src.core.models.neural_models.contextualized_topic_models
+   ewb-inferencer.src.core.models.neural_models.pytorchavitm
 
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.rst
+.. automodule:: ewb-inferencer.src.core.models.neural_models
    :members:
    :undoc-members:
    :show-inheritance:

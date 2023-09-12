@@ -7,8 +7,8 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ewb-tm.src.core.clients.base.rst
-   ewb-tm.src.core.clients.external.rst
+   ewb-tm.src.core.clients.base
+   ewb-tm.src.core.clients.external
 
 Submodules
 ----------
@@ -16,7 +16,7 @@ Submodules
 ewb\-tm.src.core.clients.ewb\_solr\_client module
 -------------------------------------------------
 
-.. automodule:: ewb-tm.src.core.clients.ewb_solr_client.rst
+.. automodule:: ewb-tm.src.core.clients.ewb_solr_client
    :members:
    :undoc-members:
    :show-inheritance:
@@ -24,7 +24,7 @@ ewb\-tm.src.core.clients.ewb\_solr\_client module
 Module contents
 ---------------
 
-.. automodule:: ewb-tm.src.core.clients.rst
+.. automodule:: ewb-tm.src.core.clients
    :members:
    :undoc-members:
    :show-inheritance:

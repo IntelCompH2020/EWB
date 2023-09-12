@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.core.inferencer.base.inferencer module
 ----------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.inferencer.base.inferencer.rst
+.. automodule:: ewb-inferencer.src.core.inferencer.base.inferencer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.core.inferencer.base.inferencer module
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.inferencer.base.rst
+.. automodule:: ewb-inferencer.src.core.inferencer.base
    :members:
    :undoc-members:
    :show-inheritance:

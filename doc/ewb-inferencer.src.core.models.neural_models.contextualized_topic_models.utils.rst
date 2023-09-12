@@ -7,7 +7,7 @@ Submodules
 ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.utils.data\_preparation module
 -----------------------------------------------------------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils.data_preparation.rst
+.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils.data_preparation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.uti
 ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.utils.preprocessing module
 -------------------------------------------------------------------------------------------------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils.preprocessing.rst
+.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ewb\-inferencer.src.core.models.neural\_models.contextualized\_topic\_models.uti
 Module contents
 ---------------
 
-.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils.rst
+.. automodule:: ewb-inferencer.src.core.models.neural_models.contextualized_topic_models.utils
    :members:
    :undoc-members:
    :show-inheritance:

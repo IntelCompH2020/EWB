@@ -7,7 +7,7 @@ Submodules
 ewb\-tm.src.core.clients.base.solr\_client module
 -------------------------------------------------
 
-.. automodule:: ewb-tm.src.core.clients.base.solr_client.rst
+.. automodule:: ewb-tm.src.core.clients.base.solr_client
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-tm.src.core.clients.base.solr\_client module
 Module contents
 ---------------
 
-.. automodule:: ewb-tm.src.core.clients.base.rst
+.. automodule:: ewb-tm.src.core.clients.base
    :members:
    :undoc-members:
    :show-inheritance:

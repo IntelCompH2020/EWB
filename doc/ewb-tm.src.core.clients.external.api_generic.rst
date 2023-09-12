@@ -7,7 +7,7 @@ Submodules
 ewb\-tm.src.core.clients.external.api\_generic.client module
 ------------------------------------------------------------
 
-.. automodule:: ewb-tm.src.core.clients.external.api_generic.client.rst
+.. automodule:: ewb-tm.src.core.clients.external.api_generic.client
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ ewb\-tm.src.core.clients.external.api\_generic.client module
 ewb\-tm.src.core.clients.external.api\_generic.response module
 --------------------------------------------------------------
 
-.. automodule:: ewb-tm.src.core.clients.external.api_generic.response.rst
+.. automodule:: ewb-tm.src.core.clients.external.api_generic.response
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ewb\-tm.src.core.clients.external.api\_generic.response module
 Module contents
 ---------------
 
-.. automodule:: ewb-tm.src.core.clients.external.api_generic.rst
+.. automodule:: ewb-tm.src.core.clients.external.api_generic
    :members:
    :undoc-members:
    :show-inheritance:
