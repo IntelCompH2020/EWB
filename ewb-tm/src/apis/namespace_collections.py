@@ -53,12 +53,14 @@ class CreateCollection(Resource):
     def post(self):
         args = parser.parse_args()
         collection = args['collection']
-        corpus, err = sc.create_collection(col_name=collection)
-        if err == 409:
-            return f"Collection {collection} already exists.", err
-        else:
-            return corpus, err
-
+        try:
+            corpus, err = sc.create_collection(col_name=collection)
+            if err == 409:
+                return f"Collection {collection} already exists.", err
+            else:
+                return corpus, err
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/deleteCollection/')
 class DeleteCollection(Resource):
@@ -66,15 +68,20 @@ class DeleteCollection(Resource):
     def post(self):
         args = parser.parse_args()
         collection = args['collection']
-        sc.delete_collection(col_name=collection)
-        return '', 200
+        try:
+            sc.delete_collection(col_name=collection)
+            return f"Collection {collection} was deleted.", 200
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/listCollections/')
 class ListCollections(Resource):
     def get(self):
-        return sc.list_collections()
-
+        try:
+            return sc.list_collections(), 200
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/query/')
 class Query(Resource):
@@ -103,7 +110,9 @@ class Query(Resource):
         query_values = {k: v for k, v in query_values.items() if v is not None}
 
         # Execute query
-        code, results = sc.execute_query(
-            q=q, col_name=collection, **query_values)
-
-        return results.docs, code
+        try:
+            code, results = sc.execute_query(
+                q=q, col_name=collection, **query_values)
+            return results.docs, code
+        except Exception as e:
+            return str(e), 500

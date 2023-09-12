@@ -182,9 +182,12 @@ class getThetasDocById(Resource):
         doc_id = args['doc_id']
         model_name = args['model_name']
 
-        return sc.do_Q1(corpus_col=corpus_collection,
-                        doc_id=doc_id,
-                        model_name=model_name)
+        try:
+            return sc.do_Q1(corpus_col=corpus_collection,
+                            doc_id=doc_id,
+                            model_name=model_name)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getCorpusMetadataFields/')
@@ -193,8 +196,10 @@ class getCorpusMetadataFields(Resource):
     def get(self):
         args = q2_parser.parse_args()
         corpus_collection = args['corpus_collection']
-
-        return sc.do_Q2(corpus_col=corpus_collection)
+        try:
+            return sc.do_Q2(corpus_col=corpus_collection)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getNrDocsColl/')
@@ -203,8 +208,10 @@ class getNrDocsColl(Resource):
     def get(self):
         args = q3_parser.parse_args()
         collection = args['collection']
-
-        return sc.do_Q3(col=collection)
+        try:
+            return sc.do_Q3(col=collection)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getDocsWithThetasLargerThanThr/')
@@ -219,12 +226,15 @@ class getDocsWithThetasLargerThanThr(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q4(corpus_col=corpus_collection,
-                        model_name=model_name,
-                        topic_id=topic_id,
-                        thr=threshold,
-                        start=start,
-                        rows=rows)
+        try:
+            return sc.do_Q4(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            topic_id=topic_id,
+                            thr=threshold,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getDocsWithHighSimWithDocByid/')
@@ -238,11 +248,14 @@ class getDocsWithHighSimWithDocByid(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q5(corpus_col=corpus_collection,
-                        model_name=model_name,
-                        doc_id=doc_id,
-                        start=start,
-                        rows=rows)
+        try:
+            return sc.do_Q5(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            doc_id=doc_id,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getMetadataDocById/')
@@ -253,8 +266,11 @@ class getMetadataDocById(Resource):
         corpus_collection = args['corpus_collection']
         doc_id = args['doc_id']
 
-        return sc.do_Q6(corpus_col=corpus_collection,
-                        doc_id=doc_id)
+        try:
+            return sc.do_Q6(corpus_col=corpus_collection,
+                            doc_id=doc_id)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getDocsWithString/')
@@ -267,10 +283,13 @@ class getDocsWithString(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q7(corpus_col=corpus_collection,
-                        string=string,
-                        start=start,
-                        rows=rows)
+        try:
+            return sc.do_Q7(corpus_col=corpus_collection,
+                            string=string,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getTopicsLabels/')
@@ -282,9 +301,12 @@ class getTopicsLabels(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q8(model_col=model_collection,
-                        start=start,
-                        rows=rows)
+        try:
+            return sc.do_Q8(model_col=model_collection,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getTopicTopDocs/')
@@ -298,12 +320,14 @@ class getTopicTopDocs(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q9(corpus_col=corpus_collection,
-                        model_name=model_name,
-                        topic_id=topic_id,
-                        start=start,
-                        rows=rows)
-
+        try:
+            return sc.do_Q9(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            topic_id=topic_id,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/getModelInfo/')
 class getModelInfo(Resource):
@@ -314,9 +338,12 @@ class getModelInfo(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q10(model_col=model_collection,
-                         start=start,
-                         rows=rows)
+        try:
+            return sc.do_Q10(model_col=model_collection,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getBetasTopicById/')
@@ -326,9 +353,12 @@ class getBetasTopicById(Resource):
         args = q11_parser.parse_args()
         model_collection = args['model_collection']
         topic_id = args['topic_id']
-
-        return sc.do_Q11(model_col=model_collection,
-                         topic_id=topic_id)
+        
+        try:
+            return sc.do_Q11(model_col=model_collection,
+                            topic_id=topic_id)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getMostCorrelatedTopics/')
@@ -341,10 +371,13 @@ class getMostCorrelatedTopics(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q12(model_col=model_collection,
-                         topic_id=topic_id,
-                         start=start,
-                         rows=rows)
+        try:
+            return sc.do_Q12(model_col=model_collection,
+                            topic_id=topic_id,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/getPairsOfDocsWithHighSim/')
 class getPairsOfDocsWithHighSim(Resource):
@@ -358,12 +391,15 @@ class getPairsOfDocsWithHighSim(Resource):
         year = args['year']
         num_records = args['num_records']
 
-        return sc.do_Q13(corpus_col=corpus_collection,
-                        model_name=model_name,
-                        lower_limit=lower_limit,
-                        upper_limit=upper_limit,
-                        year=year,
-                        num_records=num_records)
+        try:
+            return sc.do_Q13(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            lower_limit=lower_limit,
+                            upper_limit=upper_limit,
+                            year=year,
+                            num_records=num_records)
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/getDocsSimilarToFreeText/')
 class getDocsSimilarToFreeText(Resource):
@@ -376,11 +412,14 @@ class getDocsSimilarToFreeText(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q14(corpus_col=corpus_collection,
-                         model_name=model_name,
-                         text_to_infer=text_to_infer,
-                         start=start,
-                         rows=rows)
+        try:
+            return sc.do_Q14(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            text_to_infer=text_to_infer,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getLemmasDocById/')
@@ -391,8 +430,11 @@ class getLemmasDocById(Resource):
         corpus_collection = args['corpus_collection']
         doc_id = args['doc_id']
 
-        return sc.do_Q15(corpus_col=corpus_collection,
-                         doc_id=doc_id)
+        try:
+            return sc.do_Q15(corpus_col=corpus_collection,
+                            doc_id=doc_id)
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/getThetasAndDateAllDocs/')
@@ -405,11 +447,13 @@ class getThetasAndDateAllDocs(Resource):
         start = args['start']
         rows = args['rows']
 
-        return sc.do_Q16(corpus_col=corpus_collection,
-                         model_name=model_name,
-                         start=start,
-                         rows=rows)
-
+        try:
+            return sc.do_Q16(corpus_col=corpus_collection,
+                            model_name=model_name,
+                            start=start,
+                            rows=rows)
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/getBetasByWordAndTopicId/')
 class getBetasByWordAndTopicId(Resource):
@@ -420,6 +464,9 @@ class getBetasByWordAndTopicId(Resource):
         tpc_id = args['tpc_id']
         word = args['word']
 
-        return sc.do_Q17(model_name=model_name,
-                         tpc_id=tpc_id,
-                         word=word)
+        try:
+            return sc.do_Q17(model_name=model_name,
+                            tpc_id=tpc_id,
+                            word=word)
+        except Exception as e:
+            return str(e), 500

@@ -32,8 +32,11 @@ class IndexModel(Resource):
     def post(self):
         args = parser.parse_args()
         model_path = args['model_path']
-        sc.index_model(model_path)
-        return '', 200
+        try:
+            sc.index_model(model_path)
+            return '', 200
+        except Exception as e:
+            return str(e), 500
 
 
 @api.route('/deleteModel/')
@@ -42,12 +45,17 @@ class DeleteModel(Resource):
     def post(self):
         args = parser.parse_args()
         model_path = args['model_path']
-        sc.delete_model(model_path)
-        return '', 200
-
+        try:
+            sc.delete_model(model_path)
+            return '', 200
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/listAllModels/')
 class ListAllModels(Resource):
     def get(self):
-        models_lst, code = sc.list_model_collections()
-        return models_lst, code
+        try:
+            models_lst, code = sc.list_model_collections()
+            return models_lst, code
+        except Exception as e:
+            return str(e), 500

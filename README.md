@@ -21,6 +21,8 @@ The Evaluation Workbench (EWB) API Dockers comprise a multi-container applicatio
 
 This service comprises a RESTful API that utilizes the Solr search engine for data storage and retrieval. It enables the indexing of logical corpora and associated topic models, formatted according to the specifications provided by the [``topicmodeler``](https://github.com/IntelCompH2020/topicmodeler). Additionally, it facilitates information retrieval through a set of queries.
 
+![EWB's TM Api](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/tm_api.png)
+
 This system relies on the following services:
 
 1. **ewb-tm**: This service hosts the Topic Modeling's RESTful API server. It is constructed using the Dockerfile located in the ``ewb-tm`` directory. It has dependencies on the Solr service and requires access to the following mounted volumes: ``./data/source``, ``./data/inference``, and ``./ewb_config``. These volumes are crucial for accessing necessary data from the ITMT (the project folder containing the topic models) and for delivering results obtained through the EWB or generated via the Inference service. The ``ewb_config`` volume also houses some important configuration variables.
@@ -43,11 +45,15 @@ This system relies on the following services:
 
 This service serves as a Topic Model Inferencer, constructed using the Dockerfile found in the ``ewb-inferencer`` directory. It relies on access to mounted volumes at ``./data/source``, ``./data/inference``, and ``./ewb_config``.
 
+![EWB's TM Api](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/inferencer_api.png)
+
 Its primary purpose is to be used internally by the Topic Modeling Service, although it can also function as a standalone component.
 
 ### Classification Service
 
 This service serves as an inference system for hierarchical classification, built on top of the [``clf-inference-intelcomp``](https://pypi.org/project/clf-inference-intelcomp/) library, that allows to classify texts based on a given hierarchy of language models. It relies on access to mounted volumes at ``./data/classifier`` and ``./ewb_config``.
+
+![EWB's Classifier Api](https://github.com/IntelCompH2020/EWB/blob/development/static/Images/tm_api.png)
 
 ## Requirements
 

@@ -55,7 +55,7 @@ delete_parser.add_argument('argument',
 @api.route('/inferDoc/')
 class InferDoc(Resource):
     @api.doc(parser=infer_doc_parser)
-    def post(self):
+    def get(self):
         args = infer_doc_parser.parse_args()
         text_to_infer = args['text_to_infer']
         model_for_infer = args['model_for_infer']
@@ -63,14 +63,16 @@ class InferDoc(Resource):
             get_infer_config(logger=logger,
                              text_to_infer=text_to_infer,
                              model_for_infer=model_for_infer)
-
-        return inferencers[trainer].predict(path_to_infer_config)
-
-
+            
+        try:
+            return inferencers[trainer].predict(path_to_infer_config), 200
+        except Exception as e:
+            return str(e), 500
+            
 @api.route('/inferCorpus/')
 class InferCorpus(Resource):
     @api.doc(parser=infer_corpus_parser)
-    def post(self):
+    def get(self):
         # TODO
         pass
 
@@ -86,6 +88,6 @@ class listInferenceModels(Resource):
 @api.route('/deleteInferenceModel/')
 class deleteInferenceModel(Resource):
     @api.doc(parser=delete_parser)
-    def get(self):
+    def post(self):
         # TODO
         pass

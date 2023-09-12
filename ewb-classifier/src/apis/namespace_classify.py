@@ -34,7 +34,7 @@ cache_models_parser.add_argument('taxonmy',
 @api.route('/classify/')
 class Classify(Resource):
     @api.doc(parser=classify_parser)
-    def post(self):
+    def get(self):
         args = classify_parser.parse_args()
         text = args['text']
         taxonomy = args['taxonmy']
@@ -45,9 +45,9 @@ class Classify(Resource):
     
 @api.route('/list_avail_taxonomies/')
 class ListAvailTaxonomies(Resource):
-    def post(self):
+    def get(self):
         try:
-            return classifier.get_avail_taxonomies()
+            return classifier.get_avail_taxonomies(), 200
         except Exception as e:
             return str(e), 500
 
@@ -64,16 +64,16 @@ class CacheModels(Resource):
         
 @api.route('/list_models')
 class ListModels(Resource):
-    def post(self):
+    def get(self):
         try:
-            return classifier.list_models()
+            return classifier.list_models(), 200
         except Exception as e:
             return str(e), 500       
 
 @api.route('/list_classes')
 class ListClasses(Resource):
-    def post(self):
+    def get(self):
         try:
-            return classifier.list_classes()
+            return classifier.list_classes(), 200
         except Exception as e:
             return str(e), 500

@@ -35,9 +35,11 @@ class IndexCorpus(Resource):
     def post(self):
         args = parser.parse_args()
         corpus_path = args['corpus_path']
-        sc.index_corpus(corpus_path)
-        return '', 200
-
+        try:
+            sc.index_corpus(corpus_path)
+            return '', 200
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/deleteCorpus/')
 class DeleteCorpus(Resource):
@@ -45,16 +47,20 @@ class DeleteCorpus(Resource):
     def post(self):
         args = parser.parse_args()
         corpus_path = args['corpus_path']
-        sc.delete_corpus(corpus_path)
-        return '', 200
-
+        try:
+            sc.delete_corpus(corpus_path)
+            return '', 200
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/listAllCorpus/')
 class listAllCorpus(Resource):
     def get(self):
-        corpus_lst, code = sc.list_corpus_collections()
-        return corpus_lst, code
-
+        try:
+            corpus_lst, code = sc.list_corpus_collections()
+            return corpus_lst, code
+        except Exception as e:
+            return str(e), 500
 
 @api.route('/listCorpusModels/')
 class listCorpusModels(Resource):
@@ -62,5 +68,8 @@ class listCorpusModels(Resource):
     def get(self):
         args = parser2.parse_args()
         corpus_col = args['corpus_col']
-        corpus_lst, code = sc.get_corpus_models(corpus_col=corpus_col)
-        return corpus_lst, code
+        try:
+            corpus_lst, code = sc.get_corpus_models(corpus_col=corpus_col)
+            return corpus_lst, code
+        except Exception as e:
+            return str(e), 500
