@@ -9,7 +9,7 @@ networks:
         - subnet: 192.168.128.0/24
 
 services:
-  restapi:
+  tm:
     build: ./ewb-tm
     container_name: ewb-tm
     ports:
@@ -21,12 +21,12 @@ services:
       - solr
       - inferencer
     networks:
-      - ewb-net 
+      - ewb-net
     volumes:
       - ./data/source:/data/source
       - ./data/inference:/data/inference
       - ./ewb_config:/config
-  
+
   inferencer:
     build: ./ewb-inferencer
     container_name: ewb-inferencer
@@ -49,8 +49,8 @@ services:
     volumes:
       - ./data/classifier:/data/classifier
       - ./ewb_config:/config
-   
-  initializer:
+
+  solr-initializer:
     image: alpine
     container_name: ewb-solr-initializer
     restart: "no"
@@ -98,7 +98,7 @@ services:
     networks:
       - ewb-net
 
-  solr-config:
+  solr_config:
     build: ./solr_config
     container_name: ewb-solr_config
     ports:
@@ -112,7 +112,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./solr_config/bash_scripts:/bash_scripts
       - ./db/data/solr:/db/data/solr
-    command: 
+    command:
       - sh
       - -c
-      - 'chmod +x /bash_scripts/init_config.sh && ls /bash_scripts && bash_scripts/init_config.sh /db/data/solr/data'
+      - "chmod +x /bash_scripts/init_config.sh && ls /bash_scripts && bash_scripts/init_config.sh /db/data/solr/data"
