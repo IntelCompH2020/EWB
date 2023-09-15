@@ -539,6 +539,8 @@ class EWBSolrClient(SolrClient):
         
         # 1. Remove rows with score = 0.00
         df_filtered = df.loc[df['score'] != 0.00].copy()
+        if df_filtered.empty:
+            return
         # 2. Apply the score filter to the 'similarities' column
         df_filtered['similarities'] = df_filtered.apply(self.indexes_filter, axis=1)
         # 3. Remove the 'score' column
@@ -556,7 +558,9 @@ class EWBSolrClient(SolrClient):
         # 8. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
         df_sims = df_sims[df_sims['id_similarities'].isin(df_sims['id'])]
         # 9. Remove rows where the values of "id" and "id_similarities" match (same document)
-        df_sims = df_sims[df_sims['id'] != df_sims['id_similarities']]
+        df_sims['sorted_ids'] = df_sims.apply(lambda row: sorted([row['id'], row['id_similarities']]), axis=1)
+        df_sims = df_sims.drop_duplicates(subset='sorted_ids')
+        df_sims = df_sims.drop(columns='sorted_ids')
         # 10. Sort the DataFrame from highest to lowest based on the "similarities" field
         df_sims = df_sims.sort_values(by='similarities', ascending=False)
         # 11. Reset the DataFrame index
@@ -1303,9 +1307,12 @@ class EWBSolrClient(SolrClient):
             return "No results found with the given parameters", 404
         else:
         
-            df_score = pd.DataFrame(score.docs)
+            df_score = pd.DataFrame(aux_docs)
             dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
-
+            
+            if dict_sims is None:
+                return "No results found with the given parameters", 404
+            
             # 7. Normalize scores
             for el in dict_sims:
                 el['score'] = 100 * el['score']
