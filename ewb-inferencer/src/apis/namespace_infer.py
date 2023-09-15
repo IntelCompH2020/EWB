@@ -65,7 +65,7 @@ class InferDoc(Resource):
                              model_for_infer=model_for_infer)
             
         try:
-            return inferencers[trainer].predict(path_to_infer_config), 200
+            return inferencers[trainer].predict(path_to_infer_config)
         except Exception as e:
             return str(e), 500
             

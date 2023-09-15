@@ -62,3 +62,5 @@ This service serves as an inference system for hierarchical classification, buil
 > *Note that the requirements are directly installed in their respective services at the building-up time.*
 
 ## Sample data to start using the EWB API Dockers
+
+A sample corpus and model can be downloaded from [here](https://drive.google.com/drive/folders/1JywM1IkUk2O2Kx2S1nKJdulp30B9D1YU?usp=drive_link).

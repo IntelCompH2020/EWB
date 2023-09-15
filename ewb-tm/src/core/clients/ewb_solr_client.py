@@ -216,7 +216,6 @@ class EWBSolrClient(SolrClient):
             return
 
         # 4. Delete all models associated with the corpus if any
-        # TODO: Check
         if "models" in results.docs[0].keys():
             for model in results.docs[0]["models"]:
                 _, sc = self.delete_collection(col_name=model)
@@ -533,9 +532,11 @@ class EWBSolrClient(SolrClient):
         df_sims: list
             List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
         """
+        
         # 0. Rename the 'sim_{model_name}' column to 'similarities'
         sim_model_key = 'sim_' + model_name
         df.rename(columns={sim_model_key: 'similarities'}, inplace=True)
+        
         # 1. Remove rows with score = 0.00
         df_filtered = df.loc[df['score'] != 0.00].copy()
         # 2. Apply the score filter to the 'similarities' column
@@ -1297,14 +1298,19 @@ class EWBSolrClient(SolrClient):
             return
 
         # 6. Process the results
-        df_score = pd.DataFrame(score.docs) 
-        dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
+        aux_docs = [i for i in score.docs if 'sim_' + model_name in i.keys()]
+        if len(aux_docs) == 0:
+            return "No results found with the given parameters", 404
+        else:
+        
+            df_score = pd.DataFrame(score.docs)
+            dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
 
-        # 7. Normalize scores
-        for el in dict_sims:
-            el['score'] = 100 * el['score']
+            # 7. Normalize scores
+            for el in dict_sims:
+                el['score'] = 100 * el['score']
 
-        return dict_sims, sc
+            return dict_sims, sc
 
     def do_Q14(self,
                corpus_col: str,
