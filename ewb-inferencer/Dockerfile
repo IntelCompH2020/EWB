@@ -1,20 +1,28 @@
-# Ubuntu version: 20.04, 18.04
-ARG VARIANT=20.04
-FROM ubuntu:${VARIANT}
+# Base image
+FROM ubuntu:22.04
+
+# Set noninteractive mode
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install python
-RUN apt-get update
-RUN apt-get upgrade -y
-RUN apt-get update && apt-get install -y \
-    python3.8 \
+# Set noninteractive mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends tzdata \
+    python3.9 \
     python3-distutils \
     python3-pip \
-    python3-apt
+    python3-apt \
+    build-essential \
+    gcc \
+    python3-dev \
+    python-is-python3
 
-# Install wget and unzip
-RUN apt-get update && apt-get install -y wget unzip
-
-RUN apt install python-is-python3
+# Clean up the package cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Java
 ENV TZ=Europe/Madrid
@@ -58,6 +66,8 @@ RUN mv mallet-2.0.8 /ewb-inferencer/src/core/models
 RUN mkdir -p /data/source
 RUN mkdir -p /data/inference
 
+# Install Python packages
+RUN pip3 install --upgrade pip setuptools wheel
 RUN python3 -m pip install -r requirements.txt 
 
 EXPOSE 90
