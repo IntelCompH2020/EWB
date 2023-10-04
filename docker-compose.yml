@@ -23,8 +23,8 @@ services:
     networks:
       - ewb-net
     volumes:
-      - ./data/source:/data/source
-      - ./data/inference:/data/inference
+      - ../../data/source:/data/source
+      - ../../data/inference:/data/inference
       - ./ewb_config:/config
 
   inferencer:
@@ -35,8 +35,8 @@ services:
     networks:
       - ewb-net
     volumes:
-      - ./data/source:/data/source
-      - ./data/inference:/data/inference
+      - ../../data/source:/data/source
+      - ../../data/inference:/data/inference
       - ./ewb_config:/config
 
   classifier:
@@ -47,7 +47,7 @@ services:
     networks:
       - ewb-net
     volumes:
-      - ./data/classifier:/data/classifier
+      - ../../data/classifier:/data/classifier
       - ./ewb_config:/config
 
   solr-initializer:
@@ -57,14 +57,14 @@ services:
     entrypoint: |
       /bin/sh -c "chown 8983:8983 /solr"
     volumes:
-      - ./db/data/solr:/solr
+      - ../../data/db/data/solr:/solr
 
   solr:
     image: solr:9.1.1
     container_name: ewb-solr
     restart: always
     volumes:
-      - ./db/data/solr:/var/solr
+      - ../../data/db/data/solr:/var/solr
       - ./solr_plugins/solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
       - ./solr_plugins/solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
       - ./solr_config:/opt/solr/server/solr
@@ -93,8 +93,8 @@ services:
     environment:
       - JVMFLAGS=-Djute.maxbuffer=50000000
     volumes:
-      - ./db/data/zoo/data:/data
-      - ./db/data/zoo/logs:/datalog
+      - ../../data/db/data/zoo/data:/data
+      - ../../data/db/data/zoo/logs:/datalog
     networks:
       - ewb-net
 
@@ -111,7 +111,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./solr_config/bash_scripts:/bash_scripts
-      - ./db/data/solr:/db/data/solr
+      - ../../data/db/data/solr:/db/data/solr
     command:
       - sh
       - -c
