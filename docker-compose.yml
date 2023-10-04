@@ -64,7 +64,7 @@ services:
     container_name: ewb-solr
     restart: always
     volumes:
-      -  ../../data/db/data/solr:/var/solr
+      - ../../data/db/data/solr:/var/solr
       - ./solr_plugins/solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
       - ./solr_plugins/solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
       - ./solr_config:/opt/solr/server/solr
