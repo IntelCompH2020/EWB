@@ -10,7 +10,7 @@ networks:
 
 services:
   tm:
-    build: ./ewb-tm
+    build: ../ewb-tm
     container_name: ewb-tm
     ports:
       - 82:82
@@ -23,32 +23,32 @@ services:
     networks:
       - ewb-net
     volumes:
-      - ../../data/source:/data/source
-      - ../../data/inference:/data/inference
-      - ./ewb_config:/config
+      - ../../../data/source:/data/source
+      - ../../../data/inference:/data/inference
+      - ../ewb_config:/config
 
   inferencer:
-    build: ./ewb-inferencer
+    build: ../ewb-inferencer
     container_name: ewb-inferencer
     ports:
       - 90:90
     networks:
       - ewb-net
     volumes:
-      - ../../data/source:/data/source
-      - ../../data/inference:/data/inference
-      - ./ewb_config:/config
+      - ../../../data/source:/data/source
+      - ../../../data/inference:/data/inference
+      - ../ewb_config:/config
 
   classifier:
-    build: ./ewb-classifier
+    build: ../ewb-classifier
     container_name: ewb-classifier
     ports:
       - 100:100
     networks:
       - ewb-net
     volumes:
-      - ../../data/classifier:/data/classifier
-      - ./ewb_config:/config
+      - ../../../data/classifier:/data/classifier
+      - ../ewb_config:/config
 
   solr-initializer:
     image: alpine
@@ -57,17 +57,17 @@ services:
     entrypoint: |
       /bin/sh -c "chown 8983:8983 /solr"
     volumes:
-      - ../../data/db/data/solr:/solr
+      - ../../../data/db/data/solr:/solr
 
   solr:
     image: solr:9.1.1
     container_name: ewb-solr
     restart: always
     volumes:
-      - ../../data/db/data/solr:/var/solr
-      - ./solr_plugins/solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
-      - ./solr_plugins/solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
-      - ./solr_config:/opt/solr/server/solr
+      - ../../../data/db/data/solr:/var/solr
+      - ../solr_plugins/solr-ewb-jensen-shanon-distance-plugin/solr-js-plugin/target/solr-js-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-js-plugin-1.0.0.jar
+      - ../solr_plugins/solr-ewb-sims/solr-sims-plugin/target/solr-sims-plugin-1.0.0.jar:/opt/solr/dist/plugins/solr-sims-plugin-1.0.0.jar
+      - ../solr_config:/opt/solr/server/solr
     ports:
       - 8983:8983
     entrypoint:
@@ -93,13 +93,13 @@ services:
     environment:
       - JVMFLAGS=-Djute.maxbuffer=50000000
     volumes:
-      - ../../data/db/data/zoo/data:/data
-      - ../../data/db/data/zoo/logs:/datalog
+      - ../../../data/db/data/zoo/data:/data
+      - ../../../data/db/data/zoo/logs:/datalog
     networks:
       - ewb-net
 
   solr_config:
-    build: ./solr_config
+    build: ../solr_config
     container_name: ewb-solr_config
     ports:
       - 81:81
@@ -110,8 +110,8 @@ services:
       - ewb-net
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./solr_config/bash_scripts:/bash_scripts
-      - ../../data/db/data/solr:/db/data/solr
+      - ../solr_config/bash_scripts:/bash_scripts
+      - ../../../data/db/data/solr:/db/data/solr
     command:
       - sh
       - -c

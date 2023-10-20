@@ -139,3 +139,6 @@ ewb-inferencer/src/core/models/mallet-2.0.8
 .vscode
 
 _build
+
+# Internal uc3m deployment
+uc3m_deployment

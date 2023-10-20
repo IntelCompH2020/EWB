@@ -8,6 +8,7 @@ Date: 17/04/2023
 import configparser
 import logging
 import pathlib
+import time
 import pandas as pd
 from typing import List, Union
 from src.core.clients.external.ewb_inferencer_client import EWBInferencerClient
@@ -506,20 +507,13 @@ class EWBSolrClient(SolrClient):
                 return
 
         return start, rows
-    
-    def indexes_filter(self, row):
-        """Auxiliary function to filter the 'similarities' column by the 'indexes' column.
-        It is used inside an apply function in pandas, so it iterates over the rows of the DataFrame.
-        """
-        indexes = str(row['score']).split('.')
-        lower_limit = int(indexes[0])
-        upper_limit = int(indexes[1]) + 1
-        similarities = row['similarities'].split(" ")
-        filtered_similarities = similarities[lower_limit:upper_limit]
 
-        return ' '.join(filtered_similarities)
-
-    def pairs_sims_process(self, df: pd.DataFrame, model_name: str, num_records: int):
+    def pairs_sims_process(
+        self,
+        df: pd.DataFrame,
+        model_name: str,
+        num_records: int
+        ) -> list:
         """Function to process the pairs of documents in descendent order by the similarities for a given year.
 
         Parameters
@@ -531,15 +525,15 @@ class EWBSolrClient(SolrClient):
         -------
         df_sims: list
             List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
-        """
+        """ 
+        t_start = time.perf_counter()
         
         # 0. Rename the 'sim_{model_name}' column to 'similarities'
-        sim_model_key = 'sim_' + model_name
-        df.rename(columns={sim_model_key: 'similarities'}, inplace=True)
+        df.rename(columns={'sim_' + model_name: 'similarities'}, inplace=True)
         
         # 1. Remove rows with score = 0.00
-        df_filtered = df.loc[df['score'] != 0.00].copy()
-        if df_filtered.empty:
+        df = df.loc[df['score'] != 0.00].copy()
+        if df.empty:
             return
         
         # 2. Apply the score filter to the 'similarities' column
@@ -555,40 +549,34 @@ class EWBSolrClient(SolrClient):
 
             return ' '.join(filtered_similarities)
         
-        df_filtered['similarities'] = df_filtered.apply(indexes_filter, axis=1)
+        df['similarities'] = df.apply(indexes_filter, axis=1)
         
         # 3. Remove the 'score' column
-        df_filtered.drop(['score'], axis=1, inplace=True)
+        df.drop(['score'], axis=1, inplace=True)
+       
         # 4. Split the 'similarities' column and create multiple rows
-        df_sims = df_filtered.assign(similarities=df_filtered['similarities'].str.split(' ')).explode('similarities')
-        # 5. Divide the 'similarities' column into two columns: id_similarities and similarities
-        df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
+        df = df.assign(similarities=df['similarities'].str.split(' ')).explode('similarities')
         
-        # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
-        df_sims['id'] = df_sims['id'].astype(int)
-        # 7. Filter rows where 'id_similarities' is empty
-        df_sims = df_sims[df_sims['id_similarities'] != '']
-        df_sims['id_similarities'] = df_sims['id_similarities'].astype(int)
-        df_sims['similarities'] = df_sims['similarities'].astype(float)
-        # 8. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
-        df_sims = df_sims[df_sims['id_similarities'].isin(df_sims['id'])]
-        # 9. Remove rows where the values of "id" and "id_similarities" match (same document)
-        df_sims['sorted_ids'] = df_sims.apply(lambda row: sorted([row['id'], row['id_similarities']]), axis=1)
-        df_sims = df_sims.drop_duplicates(subset='sorted_ids')
-        df_sims = df_sims.drop(columns='sorted_ids')
-        # 10. Sort the DataFrame from highest to lowest based on the "similarities" field
-        df_sims = df_sims.sort_values(by='similarities', ascending=False)
-        # 11. Reset the DataFrame index
-        df_sims.reset_index(drop=True, inplace=True)
-        # 12. Keep only the first num_records rows
-        df_sims = df_sims.head(num_records)
-        # 13. Rename the columns
-        df_sims.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
-        # 14. Reorder the columns
-        columns_order = ['id_1', 'id_2', 'score']
-        df_sims = df_sims.reindex(columns=columns_order)
+        # 5. Divide the 'similarities' column into two columns
+        df[['id_similarities', 'similarities']] = df['similarities'].str.split('|', expand=True)
         
-        return df_sims.to_dict('records')
+        # 6. Filter rows where 'id_similarities' is empty
+        df = df[df['id_similarities'] != '']
+        df['id_similarities'] = df['id_similarities'].astype(int)
+        df['similarities'] = df['similarities'].astype(float)
+        
+        # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
+        df['id'] = df['id'].astype(int)
+        df = df[df['id_similarities'].isin(df['id'])]
+       
+        # 8. Sort the DataFrame from highest to lowest based on the "similarities" field and keep only the first num_records rows
+        df = df.sort_values(by='similarities', ascending=False).reset_index(drop=True).head(num_records)
+       
+        # 9. Rename the columns
+        df.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
+        self.logger.info(f"Similarities pairs information extracted in: {(time.perf_counter() - t_start)/60} minutes")
+        
+        return df[['id_1', 'id_2', 'score']].to_dict('records')
 
     # ======================================================
     # QUERIES
