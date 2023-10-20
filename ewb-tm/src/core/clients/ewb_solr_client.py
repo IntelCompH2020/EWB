@@ -541,14 +541,29 @@ class EWBSolrClient(SolrClient):
         df_filtered = df.loc[df['score'] != 0.00].copy()
         if df_filtered.empty:
             return
+        
         # 2. Apply the score filter to the 'similarities' column
-        df_filtered['similarities'] = df_filtered.apply(self.indexes_filter, axis=1)
+        def indexes_filter(row):
+            """Auxiliary function to filter the 'similarities' column by the 'indexes' column.
+            It is used inside an apply function in pandas, so it iterates over the rows of the DataFrame.
+            """
+            indexes = str(row['score']).split('.')
+            lower_limit = int(indexes[0])
+            upper_limit = int(indexes[1]) + 1
+            similarities = row['similarities'].split(" ")
+            filtered_similarities = similarities[lower_limit:upper_limit]
+
+            return ' '.join(filtered_similarities)
+        
+        df_filtered['similarities'] = df_filtered.apply(indexes_filter, axis=1)
+        
         # 3. Remove the 'score' column
         df_filtered.drop(['score'], axis=1, inplace=True)
         # 4. Split the 'similarities' column and create multiple rows
         df_sims = df_filtered.assign(similarities=df_filtered['similarities'].str.split(' ')).explode('similarities')
         # 5. Divide the 'similarities' column into two columns: id_similarities and similarities
         df_sims[['id_similarities', 'similarities']] = df_sims['similarities'].str.split('|', expand=True)
+        
         # 6. Convert the 'id_similarities' and 'similarities' columns to numeric types
         df_sims['id'] = df_sims['id'].astype(int)
         # 7. Filter rows where 'id_similarities' is empty

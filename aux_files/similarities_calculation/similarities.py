@@ -66,3 +66,6 @@ def main():
     
     # Calculate similarities
     calculate_sims(logger, args.path_tmmodel, args.topn, args.lb)
+
+if __name__ == '__main__':
+    main()

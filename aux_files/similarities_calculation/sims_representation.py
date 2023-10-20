@@ -24,7 +24,7 @@ def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
     """
 
     # Get the non-zero elements indices
-    non_zero_indices = W.nonzero()
+    non_zero_indices = sparse.triu(W, k=1).nonzero()
 
     # Convert to a string
     sim_str = \
@@ -38,10 +38,6 @@ def main():
     parser.add_argument('--path_tmmodel', type=str,
                         default="/export/usuarios_ml4ds/lbartolome/Repos/intelcomp_repos/EWB/data/source/Mallet-10/TMmodel",
                         help="Path to TMmodel.")
-    parser.add_argument('--topn', type=int, default=300,
-                        help="Number of top similar documents to be saved.")
-    parser.add_argument('--lb', type=float, default=0.6,
-                        help="Lower bound for the similarity.")
     
     ################### LOGGER #################
     logger = logging.getLogger()
@@ -62,7 +58,7 @@ def main():
         id_ = int(id_.strip('"'))
         return id_
 
-    with open(pathlib.Path(args.path_tmmodel).father.joinpath("corpus.txt"), encoding="utf-8") as file:
+    with open(pathlib.Path(args.path_tmmodel).parent.joinpath("corpus.txt"), encoding="utf-8") as file:
         ids_corpus = [process_line(line) for line in file]
     logger.info(f"Ids obtained")
     logger.info(f"Starting similarities representation...")
@@ -73,7 +69,9 @@ def main():
     logger.info(f"Writing similarities representation to txt file...")
 
     # Save similarities representation to txt file
-    with open(pathlib.Path(args.path_tmmodel).joinpath('distances.txt'), 'w') as f:
+    with open(pathlib.Path(args.path_tmmodel).joinpath('distances_new.txt'), 'w') as f:
         for item in sim_rpr:
             f.write("%s\n" % item)
     
+    if __name__ == '__main__':
+        main()

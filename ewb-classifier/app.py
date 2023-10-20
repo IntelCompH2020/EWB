@@ -16,3 +16,7 @@ if __name__ == '__main__':
            font='big'), 'red', attrs=['bold'])
     print('\n')
     app.run(host='0.0.0.0', port=100, debug=True)
+    
+#from waitress import serve
+#serve(app, host="0.0.0.0", port=100)
+
