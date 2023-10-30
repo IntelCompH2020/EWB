@@ -28,16 +28,14 @@ def calculate_sims(logger: logging.Logger,
   """
   t_start = time.perf_counter()
   TMfolder = pathlib.Path(tm_model_dir)
-  thetas = sparse.load_npz(TMfolder.joinpath('thetas.npz'))
+  thetas = sparse.load_npz(TMfolder.joinpath('thetas.npz')).toarray()
   logger.info(f"Shape of thetas: {np.shape(thetas)} ")
-  thetas_sqrt = np.sqrt(thetas)
-  thetas_col = thetas_sqrt.T
-
-  topn = 300
-  logger.info(f"Topn: {topn}")
-  lb=0
-  sims = awesome_cossim_topn(thetas_sqrt, thetas_col, topn, lb)
-  sparse.save_npz(TMfolder.joinpath('distances_awesome.npz'), sims)
+  
+  sqrtThetas = np.sqrt(thetas)
+  sims = sqrtThetas.dot(sqrtThetas.T)
+  sims_sparse = sparse.csr_matrix(sims, copy=True)
+  
+  sparse.save_npz(TMfolder.joinpath('distances.npz'), sims_sparse)
 
   t_end = time.perf_counter()
   t_total = (t_end - t_start)/60

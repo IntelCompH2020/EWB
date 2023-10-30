@@ -142,6 +142,7 @@ class Inferencer(object):
         if model_edits.is_file():
             with model_edits.open('r', encoding='utf8') as fin:
                 for line in fin:
+                    self._logger.info(f'--Line: {line}')
                     line_els = line.strip().split()
                     if line_els[0] == 's':
                         idx = [int(el) for el in line_els[1:]]
@@ -189,7 +190,7 @@ class Inferencer(object):
         doc_topics_file_npy = infer_path.joinpath("doc-topics.npy")
         np.save(doc_topics_file_npy, thetas32)
 
-        return
+        return thetas32
 
     @abstractmethod
     def predict(self):
@@ -201,10 +202,13 @@ class MalletInferencer(Inferencer):
 
         super().__init__(logger)
 
-    def predict(self,
-                inferConfigFile: pathlib.Path,
-                mallet_path: pathlib.Path = None,
-                max_sum: int = 1000) -> List[dict]:
+    def predict(
+        self,
+        inferConfigFile: pathlib.Path,
+        mallet_path: pathlib.Path = None,
+        max_sum: int = 1000,
+        thetas_thr: float = 3e-3
+    ) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to Mallet
 
@@ -216,6 +220,8 @@ class MalletInferencer(Inferencer):
             Path to the mallet binary
         max_sum: int
             Maximum sum of the topic proportions when attaining their string representation
+        thetas_thr: float
+            Threshold for the inferred document-topic proportions (it should be the same used during training)
 
         Returns
         -------
@@ -308,9 +314,23 @@ class MalletInferencer(Inferencer):
         cols = [k for k in np.arange(2, ntopics + 2)]
         thetas32 = np.loadtxt(doc_topics_file, delimiter='\t',
                               dtype=np.float32, usecols=cols)
-
-        super().apply_model_editions(thetas32)
-
+        
+        self._logger.info("Before applying model editions...")
+        self._logger.info(thetas32)
+        thetas32 = super().apply_model_editions(thetas32)
+        self._logger.info("After applying model editions...")
+        self._logger.info(thetas32)
+        
+        thetas32[thetas32 < thetas_thr] = 0
+        if thetas32.ndim == 2:
+            thetas32 = normalize(thetas32, axis=1, norm='l1')
+        elif thetas32.ndim == 1:
+            thetas32 = normalize(thetas32.reshape(1, -1), axis=1, norm='l1')
+        self._logger.info("After thresholding and normalization...")
+        self._logger.info(thetas32)
+        
+        thetas32_rpr = super().transform_inference_output(thetas32, max_sum)
+        self._logger.info(thetas32_rpr)
         return super().transform_inference_output(thetas32, max_sum)
 
 

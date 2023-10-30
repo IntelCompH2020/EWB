@@ -40,6 +40,7 @@ class EWBMalletInferencer(MalletInferencer):
         cf.read(config_file)
         self.mallet_path = cf.get('mallet', 'mallet_path')
         self.max_sum = cf.getint('restapi', 'max_sum')
+        self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
 
         return
 
@@ -76,7 +77,8 @@ class EWBMalletInferencer(MalletInferencer):
         try:
             resp = super().predict(inferConfigFile=inferConfigFile,
                                    mallet_path=self.mallet_path,
-                                   max_sum=self.max_sum)
+                                   max_sum=self.max_sum,
+                                   thetas_thr=self.thetas_thr)
             end_time = time.time() - start_time
             sc = 200
             responseHeader = {"status": sc,
@@ -124,6 +126,7 @@ class EWBSparkLDAInferencer(SparkLDAInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum')
+        self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
         #CHECK if necessary use max_sum_neural_models
 
         return
@@ -154,6 +157,7 @@ class EWBProdLDAInferencer(ProdLDAInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum_neural_models')
+        self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
 
         return
 
@@ -237,6 +241,7 @@ class EWBCTMInferencer(CTMInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.max_sum = cf.getint('restapi', 'max_sum_neural_models')
+        self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
 
         return
 
