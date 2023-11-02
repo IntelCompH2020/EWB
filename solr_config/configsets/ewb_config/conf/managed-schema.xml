@@ -121,8 +121,6 @@
   <field name="title" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="objective" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="lemmas" type="text_general" indexed="true" stored="true" multiValued="false" />
-  <field name="all_lemmas" type="text_general" indexed="true" stored="true" multiValued="false" />
-  <field name="ecMaxContribution" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="euroSciVocCode" type="pint" indexed="true" stored="true" multiValued="true" />
   <field name="startDate" type="pdate" indexed="true" stored="true" multiValued="false" />
   <field name="date" type="pdate" indexed="true" stored="true" multiValued="false" />
@@ -144,7 +142,7 @@
   <field name="affilname" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="affiliation_city" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="affiliation_country" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="author_count" type="pint" indexed="true" stored="true" multiValued="false" />  
+  <field name="author_count" type="pint" indexed="true" stored="true" multiValued="false" />
   <field name="author_names" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="author_ids" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="author_ifids" type="string" indexed="true" stored="true" multiValued="false" />
@@ -155,19 +153,20 @@
   <field name="pageRange" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="description" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="authkeywords" type="string" indexed="true" stored="true" multiValued="false" />
-  <field name="citedby_count" type="pint" indexed="true" stored="true" multiValued="false" />  
-  <field name="openaccess" type="pint" indexed="true" stored="true" multiValued="false" /> 
+  <field name="citedby_count" type="pint" indexed="true" stored="true" multiValued="false" />
+  <field name="openaccess" type="pint" indexed="true" stored="true" multiValued="false" />
   <field name="freetoread" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="freetoreadLabel" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="fund_no" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="abstract" type="text_general" indexed="true" stored="true" multiValued="false" />
-  
+
   <!-- Model fields  -->
   <field name="alphas" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="topic_entropy" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="topic_coherence" type="pfloat" indexed="true" stored="true" multiValued="false" />
   <field name="ndocs_active" type="pint" indexed="true" stored="true" multiValued="false" />
-  <field name="tpc_descriptions" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="tpc_descriptions" type="text_general" indexed="true" stored="true"
+    multiValued="false" />
   <field name="vocab" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="tpc_labels" type="text_general" indexed="true" stored="true" multiValued="false" />
 
@@ -390,6 +389,9 @@
   </fieldType>
 
   <field name="betas" type="VectorField" indexed="true" termOffsets="true" stored="true"
+    termPositions="true" termVectors="true" multiValued="false" />
+
+  <field name="bow" type="VectorField" indexed="true" termOffsets="true" stored="true"
     termPositions="true" termVectors="true" multiValued="false" />
 
   <!-- <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >

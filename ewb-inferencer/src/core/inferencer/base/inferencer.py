@@ -196,6 +196,45 @@ class Inferencer(object):
     def predict(self):
         pass
 
+    def get_final_thetas(
+        self,
+        thetas32: np.ndarray,
+        thetas_thr: float,
+        max_sum: int
+    ) -> List[dict]:
+        """
+        Given the inferred document-topic proportions, it applies the model editions and returns the final thetas in the desired format
+
+        Parameters
+        ----------
+        thetas32: np.ndarray
+            Doc-topic distribution of the inferred documents
+        thetas_thr: float
+            Threshold for the inferred document-topic proportions (it should be the same used during training)
+        max_sum: int
+            Maximum sum of the topic proportions when attaining their string representation
+
+        Returns
+        -------
+        List[dict]
+            List of dictionaries with the inferred topics in string representation
+        """
+
+        # Apply same model editions made at the training stage
+        thetas32 = self.apply_model_editions(thetas32)
+
+        # Thresholding and normalization
+        thetas32[thetas32 < thetas_thr] = 0
+        if thetas32.ndim == 2:
+            thetas32 = normalize(thetas32, axis=1, norm='l1')
+        elif thetas32.ndim == 1:
+            thetas32 = normalize(thetas32.reshape(1, -1), axis=1, norm='l1')
+
+        # Transform thetas into string representation
+        thetas32_rpr = self.transform_inference_output(thetas32, max_sum)
+
+        return thetas32_rpr
+
 
 class MalletInferencer(Inferencer):
     def __init__(self, logger=None):
@@ -314,24 +353,13 @@ class MalletInferencer(Inferencer):
         cols = [k for k in np.arange(2, ntopics + 2)]
         thetas32 = np.loadtxt(doc_topics_file, delimiter='\t',
                               dtype=np.float32, usecols=cols)
-        
-        self._logger.info("Before applying model editions...")
-        self._logger.info(thetas32)
-        thetas32 = super().apply_model_editions(thetas32)
-        self._logger.info("After applying model editions...")
-        self._logger.info(thetas32)
-        
-        thetas32[thetas32 < thetas_thr] = 0
-        if thetas32.ndim == 2:
-            thetas32 = normalize(thetas32, axis=1, norm='l1')
-        elif thetas32.ndim == 1:
-            thetas32 = normalize(thetas32.reshape(1, -1), axis=1, norm='l1')
-        self._logger.info("After thresholding and normalization...")
-        self._logger.info(thetas32)
-        
-        thetas32_rpr = super().transform_inference_output(thetas32, max_sum)
-        self._logger.info(thetas32_rpr)
-        return super().transform_inference_output(thetas32, max_sum)
+
+        thetas32_rpr = super().get_final_thetas(
+            thetas32=thetas32,
+            thetas_thr=thetas_thr,
+            max_sum=max_sum)
+
+        return thetas32_rpr
 
 
 class SparkLDAInferencer(Inferencer):
@@ -351,9 +379,12 @@ class ProdLDAInferencer(Inferencer):
 
         super().__init__(logger)
 
-    def predict(self,
-                inferConfigFile: pathlib.Path,
-                max_sum: int = 100000) -> List[dict]:
+    def predict(
+        self,
+        inferConfigFile: pathlib.Path,
+        max_sum: int = 100000,
+        thetas_thr: float = 3e-3
+    ) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to ProdLDA
 
@@ -363,6 +394,8 @@ class ProdLDAInferencer(Inferencer):
             Path to the configuration file for the inference process
         max_sum: int
             Maximum sum of the topic proportions when attaining their string representation
+        thetas_thr: float
+            Threshold for the inferred document-topic proportions (it should be the same used during training)
 
         Returns
         -------
@@ -392,7 +425,7 @@ class ProdLDAInferencer(Inferencer):
         holdout_corpus = Path(
             self._inferConfig['infer_path']).joinpath("corpus.parquet")
         self._logger.info(
-                f'-- Holdout corpus is {holdout_corpus}')
+            f'-- Holdout corpus is {holdout_corpus}')
         if not os.path.isdir(holdout_corpus) and not os.path.isfile(holdout_corpus):
             self._logger.error(
                 '-- Inference error. File to perform the inference on not found')
@@ -419,9 +452,12 @@ class ProdLDAInferencer(Inferencer):
         thetas32 = np.asarray(
             avitm.get_doc_topic_distribution(ho_data))
 
-        super().apply_model_editions(thetas32)
+        thetas32_rpr = super().get_final_thetas(
+            thetas32=thetas32,
+            thetas_thr=thetas_thr,
+            max_sum=max_sum)
 
-        return super().transform_inference_output(thetas32, max_sum)
+        return thetas32_rpr
 
 
 class CTMInferencer(Inferencer):
@@ -429,9 +465,12 @@ class CTMInferencer(Inferencer):
 
         super().__init__(logger)
 
-    def predict(self,
-                inferConfigFile: pathlib.Path,
-                max_sum: int = 100000) -> List[dict]:
+    def predict(
+        self,
+        inferConfigFile: pathlib.Path,
+        max_sum: int = 100000,
+        thetas_thr: float = 3e-3
+    ) -> List[dict]:
         """
         Performs topic inference utilizing a pretrained model according to CTM
 
@@ -441,6 +480,8 @@ class CTMInferencer(Inferencer):
             Path to the configuration file for the inference process
         max_sum: int
             Maximum sum of the topic proportions when attaining their string representation
+        thetas_thr: float
+            Threshold for the inferred document-topic proportions (it should be the same used during training)
 
         Returns
         -------
@@ -505,9 +546,12 @@ class CTMInferencer(Inferencer):
         thetas32 = np.asarray(
             ctm.get_doc_topic_distribution(ho_data))
 
-        super().apply_model_editions(thetas32)
+        thetas32_rpr = super().get_final_thetas(
+            thetas32=thetas32,
+            thetas_thr=thetas_thr,
+            max_sum=max_sum)
 
-        return super().transform_inference_output(thetas32, max_sum)
+        return thetas32_rpr
 
 
 ##############################################################################

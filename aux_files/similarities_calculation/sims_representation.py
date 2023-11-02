@@ -36,7 +36,7 @@ def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_tmmodel', type=str,
-                        default="/export/usuarios_ml4ds/lbartolome/Repos/intelcomp_repos/EWB/data/source/Mallet-10/TMmodel",
+                        default="/export/data_ml4ds/IntelComp/EWB/data/source/Mallet-30/TMmodel",
                         help="Path to TMmodel.")
     
     ################### LOGGER #################
@@ -69,9 +69,9 @@ def main():
     logger.info(f"Writing similarities representation to txt file...")
 
     # Save similarities representation to txt file
-    with open(pathlib.Path(args.path_tmmodel).joinpath('distances_new.txt'), 'w') as f:
+    with open(pathlib.Path(args.path_tmmodel).joinpath('distances.txt'), 'w') as f:
         for item in sim_rpr:
             f.write("%s\n" % item)
     
-    if __name__ == '__main__':
-        main()
+if __name__ == '__main__':
+    main()

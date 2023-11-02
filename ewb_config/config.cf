@@ -14,7 +14,7 @@ mallet_path=/ewb-inferencer/src/core/models/mallet-2.0.8/bin/mallet
 #Default setting for number of topics
 batch_size=100
 corpus_col=corpora
-no_meta_fields=rawtext,lemmas,all_lemmas,_version_
+no_meta_fields=rawtext,lemmas,bow,_version_
 max_sum=1000
 max_sum_neural_models=100000
 
@@ -26,6 +26,10 @@ cache_dir=/data/classifer/models
 
 # There will be one of this for each corpus avaialable at the EWB
 [cordis-config]
+title_field=title
+date_field=startDate
+
+[cordis2-config]
 title_field=title
 date_field=startDate
 

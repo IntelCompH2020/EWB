@@ -177,6 +177,7 @@ class Queries(object):
         # ================================================================
         self.Q13 = {
             'q': "{{!vs f=sim_{} vector=\"{},{}\"}} & date:[{}-01-01T00:00:00Z TO {}-12-31T23:59:59Z]",
+            'q_no_date': "{{!vs f=sim_{} vector=\"{},{}\"}}",
             'fl': "id, sim_{}, score",
             'start': '{}',
             'rows': '{}'
@@ -193,11 +194,11 @@ class Queries(object):
         # ================================================================
         # # Q15: getLemmasDocById  ##################################################################
         # # Get lemmas of a selected document in a corpus collection
-        # http://localhost:8983/solr/{col}/select?fl=all_lemmas&q=id:{id}
+        # http://localhost:8983/solr/{col}/select?fl=lemmas&q=id:{id}
         # ================================================================
         self.Q15 = {
             'q': 'id:{}',
-            'fl': 'all_lemmas',
+            'fl': 'lemmas',
         }
 
         # ================================================================
@@ -590,12 +591,20 @@ class Queries(object):
             Customized query Q13.
         """
 
-        custom_q13 = {
-            'q': self.Q13['q'].format(model_name, lower_limit, upper_limit, year, year),
-            'fl': self.Q13['fl'].format(model_name),
-            'start': self.Q13['start'].format(start),
-            'rows': self.Q13['rows'].format(rows),
-        }
+        if year:
+            custom_q13 = {
+                'q': self.Q13['q'].format(model_name, lower_limit, upper_limit, year, year),
+                'fl': self.Q13['fl'].format(model_name),
+                'start': self.Q13['start'].format(start),
+                'rows': self.Q13['rows'].format(rows),
+            }
+        else:
+            custom_q13 = {
+                'q': self.Q13['q_no_date'].format(model_name, lower_limit, upper_limit),
+                'fl': self.Q13['fl'].format(model_name),
+                'start': self.Q13['start'].format(start),
+                'rows': self.Q13['rows'].format(rows),
+            }
         
         return custom_q13
 

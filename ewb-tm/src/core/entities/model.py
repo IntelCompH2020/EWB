@@ -94,13 +94,13 @@ class Model(object):
         df = df.apply(pd.Series.explode)
         df.reset_index(drop=True)
         df["id"] = [f"t{i}" for i in range(len(df))]
-        # TODO: This should be removed once the topic model makes it on its own
-        df["tpc_labels"] = [f"Topic {i}" for i in range(len(df))]
+
         cols = df.columns.tolist()
         cols = cols[-1:] + cols[:-1]
         df = df[cols]
 
         # Get words in each topic
+
         def get_tp_words(vector: np.array,
                          max_sum: int,
                          vocab_id2w: dict) -> str:
@@ -122,6 +122,7 @@ class Model(object):
             """
             vector = sum_up_to(vector, max_sum)
             return ", ".join([vocab_id2w[str(idx)] for idx, val in enumerate(vector) if val != 0])
+
         df["vocab"] = df["betas"].apply(
             lambda x: get_tp_words(x, self.max_sum, vocab_id2w))
 
@@ -146,12 +147,8 @@ class Model(object):
                 A string with the topic-word probabilities.
             """
             vector = sum_up_to(vector, max_sum)
-            rpr = ""
-            for idx, val in enumerate(vector):
-                if val != 0:
-                    # rpr += "w" + str(idx) + "|" + str(val) + " "
-                    rpr += vocab_id2w[str(idx)] + "|" + str(val) + " "
-            rpr = rpr.rstrip()
+            rpr = " ".join([f"{vocab_id2w[str(idx)]}|{val}" for idx,
+                           val in enumerate(vector) if val != 0]).rstrip()
             return rpr
 
         df["betas"] = df["betas"].apply(
@@ -187,8 +184,9 @@ class Model(object):
 
         # Get corpus path and name of the collection
         self.corpus = tr_config["TrDtSet"]
-        self.corpus_name = tr_config["TrDtSet"].split(
-            "/")[-1].split(".")[0].lower()
+        self.corpus_name = pathlib.Path(tr_config["TrDtSet"]).name
+        if self.corpus_name.endswith(".parquet"):
+            self.corpus_name = self.corpus_name.split(".")[0].lower()
 
         # Keys for dodument-topic proportions and similarity that will be used within the corpus collection
         model_key = 'doctpc_' + self.name
@@ -246,47 +244,16 @@ class Model(object):
             # Get similarities string representation
             self._logger.info("Attaining sims rpr...")
 
-            # def get_doc_by_doc_sims(W, ids_corpus) -> List[str]:
-            #     """
-            #     Calculates the similarity between each pair of documents in the corpus collection based on the document-topic distribution provided by the model being indexed.
-
-            #     Parameters
-            #     ----------
-            #     W: scipy.sparse.csr_matrix
-            #         Sparse matrix with the similarities between each pair of documents in the corpus collection.
-            #     ids_corpus: List[str]
-            #         List of ids of the documents in the corpus collection.
-
-            #     Returns:
-            #     --------
-            #     sims: List[str]
-            #         List of string represenation of the top similarities between each pair of documents in the corpus collection.
-            #     """
-
-            #     # Get the non-zero elements indices
-            #     non_zero_indices = W.nonzero()
-
-            #     # Convert to a string
-            #     sim_str = \
-            #         [' '.join([f"{ids_corpus[col]}|{W[row, col]}" for col in non_zero_indices[1]
-            #                   [non_zero_indices[0] == row]][1:]) for row in range(W.shape[0])]
-
-            #     return sim_str
-
-            #sim_rpr = get_doc_by_doc_sims(self.sims, ids_corpus)
-
             with open(self.path_to_model.joinpath("TMmodel").joinpath('distances.txt'), 'r') as f:
                 sim_rpr = [line.strip() for line in f]
             self._logger.info(
                 "Thetas and sims attained. Creating dataframe...")
-            
+
             # Save the information in a dataframe
             df = pd.DataFrame(list(zip(ids_corpus, doc_tpc_rpr, sim_rpr)),
                               columns=['id', model_key, sim_model_key])
             self._logger.info(
-            f"Dataframe created. Printing it:{df.columns.tolist()}")
-            # self._logger.info("Merging dataframes...")
-            # df = pd.merge(df, df_orig_ids, on=['id'], how='outer').fillna("")
+                f"Dataframe created. Printing columns:{df.columns.tolist()}")
 
         elif action == "remove":
             doc_tpc_rpr = ["" for _ in range(len(ids_corpus))]
@@ -344,7 +311,7 @@ class Model(object):
 
 # if __name__ == '__main__':
     # model = Model(pathlib.Path(
-    #    "/Users/lbartolome/Documents/GitHub/EWB/data/source/Mallet-10"))
+    #    "/export/data_ml4ds/IntelComp/EWB/data/source/Mallet-30"))
     # json_lst = model.get_model_info_update(action='set')
     # pos = model.get_topic_pos()
     # print(json_lst[0])

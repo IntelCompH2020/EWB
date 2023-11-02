@@ -133,7 +133,7 @@ q13_parser.add_argument(
 q13_parser.add_argument(
     'upper_limit', help='Upper percentage of semantic similarity to retrieve pairs of documents', required=True)
 q13_parser.add_argument(
-    'year', help='Publication year to be filtered by', required=True)
+    'year', help='Publication year to be filtered by', required=False)
 q13_parser.add_argument(
     'num_records', help='Controls how many pairs of documents are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 

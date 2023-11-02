@@ -8,6 +8,7 @@ Date: 27/03/2023
 import configparser
 import json
 from typing import List
+from gensim.corpora import Dictionary
 
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
@@ -82,13 +83,6 @@ class Corpus(object):
             ddf = dd.read_parquet(DtSet['parquet']).fillna("")
             idfld = DtSet["idfld"]
 
-            # Concatenate text fields
-            for idx2, col in enumerate(DtSet['lemmasfld']):
-                if idx2 == 0:
-                    ddf["all_lemmas"] = ddf[col]
-                else:
-                    ddf["all_lemmas"] += " " + ddf[col]
-
             # Rename id-field to id, title-field to title and date-field to date
             ddf = ddf.rename(
                 columns={idfld: "id",
@@ -98,13 +92,27 @@ class Corpus(object):
         with ProgressBar():
             df = ddf.compute(scheduler='processes')
 
-        df["nwords_per_doc"] = df["all_lemmas"].apply(lambda x: len(x.split()))
+        # Get number of words per document based on the lemmas column
+        # NOTE: Document whose lemmas are empty will have a length of 0
+        df["nwords_per_doc"] = df["lemmas"].apply(lambda x: len(x.split()))
+        
+        # Get BoW representation
+        # We dont read from the gensim dictionary that will be associated with the tm models trained on the corpus since we want to have the bow for all the documents, not only those kept after filering extremes in the dictionary during the construction of the logical corpus
+        # check none values: df[df.isna()]
+        df['lemmas_'] = df['lemmas'].apply(lambda x: x.split() if isinstance(x, str) else [])
+        dictionary = Dictionary()
+        df['bow'] = df['lemmas_'].apply(lambda x: dictionary.doc2bow(x, allow_update=True) if x else [])
+        df['bow'] = df['bow'].apply(lambda x: [(dictionary[id], count) for id, count in x] if x else [])
+        df['bow'] = df['bow'].apply(lambda x: None if len(x) == 0 else x)
+        df = df.drop(['lemmas_'], axis=1)
+        df['bow'] = df['bow'].apply(lambda x: ' '.join([f'{word}|{count}' for word, count in x]).rstrip() if x else None)
 
-        # Save corpus fields
-        self.fields = df.columns.tolist()
         # Convert dates information to the format required by Solr ( ISO_INSTANT, The ISO instant formatter that formats or parses an instant in UTC, such as '2011-12-03T10:15:30Z')
         df, cols = convert_datetime_to_strftime(df)
         df[cols] = df[cols].applymap(parseTimeINSTANT)
+        
+        # Save corpus fields
+        self.fields = df.columns.tolist()
 
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
