@@ -871,6 +871,7 @@ class TMmodel(object):
     def to_dataframe(self):
         self._load_alphas()
         self._load_betas()
+        self._load_betas_ds()
         self._load_thetas()
         self._load_betas_ds()
         self._load_topic_entropy()
@@ -883,6 +884,7 @@ class TMmodel(object):
 
         data = {
             "betas": [self._betas],
+            "betas_ds": [self._betas_ds],
             "alphas": [self._alphas],
             "topic_entropy": [self._topic_entropy],
             "topic_coherence": [self._topic_coherence],
@@ -891,4 +893,4 @@ class TMmodel(object):
             "tpc_labels": [self._tpc_labels],
         }
         df = pd.DataFrame(data)
-        return df, self._vocab_id2w
+        return df, self._vocab_id2w, self._vocab

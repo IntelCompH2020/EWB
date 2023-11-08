@@ -39,7 +39,7 @@ class EWBMalletInferencer(MalletInferencer):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         self.mallet_path = cf.get('mallet', 'mallet_path')
-        self.max_sum = cf.getint('restapi', 'max_sum')
+        self.max_sum = cf.getint('restapi', 'thetas_max_sum')
         self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
 
         return
@@ -125,7 +125,7 @@ class EWBSparkLDAInferencer(SparkLDAInferencer):
         # Read configuration from config file
         cf = configparser.ConfigParser()
         cf.read(config_file)
-        self.max_sum = cf.getint('restapi', 'max_sum')
+        self.max_sum = cf.getint('restapi', 'thetas_max_sum')
         self.thetas_thr = cf.getfloat('inferencer', 'thetas_thr')
         #CHECK if necessary use max_sum_neural_models
 

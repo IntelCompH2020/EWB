@@ -65,8 +65,11 @@ def parseTimeINSTANT(time):
         if math.isnan(time):
             return clean_xml_string("")
         
-def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
-    """It takes in a vector and a max_sum value and returns a NumPy array with the same shape as vector but with the values adjusted such that their sum is equal to max_sum.
+def sum_up_to(
+    vector: np.ndarray,
+    max_sum: int
+) -> np.ndarray:
+    """It takes in a vector and a max_sum value and returns a NumPy array with the same shape as vector but with the values adjusted such that their sum is equal to max_sum using integer values.
 
     Parameters
     ----------
@@ -84,5 +87,6 @@ def sum_up_to(vector: np.ndarray, max_sum: int) -> np.ndarray:
     pos_idx = list(np.where(x != 0)[0])
     while np.sum(x) != max_sum:
         idx = random.choice(pos_idx)
-        x[idx] += 1
+        if x[idx] > 0:
+            x[idx] += 1
     return x

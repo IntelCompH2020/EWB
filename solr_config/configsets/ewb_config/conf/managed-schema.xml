@@ -125,13 +125,27 @@
   <field name="startDate" type="pdate" indexed="true" stored="true" multiValued="false" />
   <field name="date" type="pdate" indexed="true" stored="true" multiValued="false" />
   <field name="nwords_per_doc" type="pint" indexed="true" stored="true" multiValued="false" />
+  
+  <!-- HFRI fields  -->
+  <field name="Summary" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="keywords" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="Budget" type="pfloat" indexed="true" stored="true" multiValued="false" />
+  <field name="Duration" type="pfloat" indexed="true" stored="true" multiValued="false" />
+  <field name="Call" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="field1" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="field2" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="Project_ID" type="pint" indexed="true" stored="true" multiValued="false" />
+  <field name="Host_Institutions__Greek_" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="field1_code" type="pfloat" indexed="true" stored="true" multiValued="false" />
+  <field name="field1_name" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="Gender_IP" type="text_general" indexed="true" stored="true" multiValued="false" />
+
   <!-- Scopus fields  -->
   <field name="issn" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="eIssn" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="article_number" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="volume" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="issueIdentifier" type="text_general" indexed="true" stored="true" multiValued="false" />
-
   <field name="raw_text" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="doi" type="string" indexed="true" stored="true" multiValued="false" />
   <field name="pubmed_id" type="string" indexed="true" stored="true" multiValued="false" />
@@ -389,6 +403,9 @@
   </fieldType>
 
   <field name="betas" type="VectorField" indexed="true" termOffsets="true" stored="true"
+    termPositions="true" termVectors="true" multiValued="false" />
+
+  <field name="top_words_betas" type="VectorFloatField" indexed="true" termOffsets="true" stored="true"
     termPositions="true" termVectors="true" multiValued="false" />
 
   <field name="bow" type="VectorField" indexed="true" termOffsets="true" stored="true"

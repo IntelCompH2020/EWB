@@ -141,7 +141,7 @@ class Queries(object):
         # ================================================================
         self.Q10 = {
             'q': '*:*',
-            'fl': 'id,betas,alphas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
+            'fl': 'id,alphas,top_words_betas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
             'start': '{}',
             'rows': '{}'
         }

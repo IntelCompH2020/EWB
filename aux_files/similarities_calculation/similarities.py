@@ -12,7 +12,7 @@ import pathlib
 def calculate_sims(logger: logging.Logger,
                    tm_model_dir:str,
                    topn:int=300,
-                   lb:float=0.6):
+                   lb:float=0):
   """Given the path to a TMmodel, it calculates the similarities between documents and saves them in a sparse matrix.
 
   Parameters
@@ -32,10 +32,8 @@ def calculate_sims(logger: logging.Logger,
   logger.info(f"Shape of thetas: {np.shape(thetas)} ")
   thetas_sqrt = np.sqrt(thetas)
   thetas_col = thetas_sqrt.T
-
-  topn = 300
+  
   logger.info(f"Topn: {topn}")
-  lb=0
   sims = awesome_cossim_topn(thetas_sqrt, thetas_col, topn, lb)
   sparse.save_npz(TMfolder.joinpath('distances_awesome.npz'), sims)
 
@@ -51,7 +49,7 @@ def main():
                         help="Path to TMmodel.")
     parser.add_argument('--topn', type=int, default=300,
                         help="Number of top similar documents to be saved.")
-    parser.add_argument('--lb', type=float, default=0.6,
+    parser.add_argument('--lb', type=float, default=0,
                         help="Lower bound for the similarity.")
     
     ################### LOGGER #################

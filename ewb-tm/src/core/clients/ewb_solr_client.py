@@ -31,7 +31,8 @@ class EWBSolrClient(SolrClient):
         self.batch_size = int(cf.get('restapi', 'batch_size'))
         self.corpus_col = cf.get('restapi', 'corpus_col')
         self.no_meta_fields = cf.get('restapi', 'no_meta_fields').split(",")
-        self.max_sum = int(cf.get('restapi', 'max_sum'))
+        self.thetas_max_sum = int(cf.get('restapi', 'thetas_max_sum'))
+        self.betas_max_sum = int(cf.get('restapi', 'betas_max_sum'))
 
         # Create Queries object for managing queries
         self.querier = Queries()
@@ -317,10 +318,6 @@ class EWBSolrClient(SolrClient):
             return
         field_update = model.get_corpora_model_update(
             id=results.docs[0]["id"], action='add')
-        
-        metadata = self.do_Q2("cordis")
-        self.logger.info(
-            f"-- -- Metadata of {self.corpus_col} before adding the doc-tpc distribution: {metadata}")
 
         # 4. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
         self.logger.info(
@@ -373,7 +370,8 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error getting corpus collections in {self.corpus_col}. Aborting operation...")
             return
 
-        models_lst = [model for doc in results.docs for model in doc["models"]]
+        models_lst = [model for doc in results.docs if bool(doc) for model in doc["models"]]
+        self.logger.info(f"-- -- Models found: {models_lst}")
 
         return models_lst, sc
 
@@ -852,7 +850,7 @@ class EWBSolrClient(SolrClient):
 
         # 6. Normalize scores
         for el in results.docs:
-            el['score'] *= (100/(self.max_sum ^ 2))
+            el['score'] *= (100/(self.thetas_max_sum ^ 2))
 
         return results.docs, sc
 
@@ -1122,12 +1120,6 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q10. Aborting operation...")
             return
-            
-        for el in results.docs:
-            desc = el['tpc_descriptions'].split(", ")
-            tpc_id = el['id'].split("t")[1]
-            betas_list = [word + "|" + str(self.do_Q17(model_name=model_col, tpc_id=tpc_id, word=word)[0]['betas']) for word in desc]
-            el['top_words_betas'] = ' '.join(betas_list)
               
         return results.docs, sc
 
@@ -1227,7 +1219,7 @@ class EWBSolrClient(SolrClient):
         # 6. Normalize scores
         self.logger.info(f"-- --Results: {results.docs}")
         for el in results.docs:
-            el['score'] *= (100/(self.max_sum ^ 2))
+            el['score'] *= (100/(self.betas_max_sum ^ 2))
 
         return results.docs, sc
 
@@ -1383,7 +1375,7 @@ class EWBSolrClient(SolrClient):
 
         # 6. Normalize scores
         for el in results.docs:
-            el['score'] *= (100/(self.max_sum ^ 2))
+            el['score'] *= (100/(self.thetas_max_sum ^ 2))
 
         return results.docs, sc
 

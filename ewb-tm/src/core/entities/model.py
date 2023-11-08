@@ -21,7 +21,9 @@ import numpy as np
 import pandas as pd
 from dask.diagnostics import ProgressBar
 from src.core.entities.tm_model import TMmodel
+# from tm_model import TMmodel
 from src.core.entities.utils import sum_up_to
+# from utils import sum_up_to
 
 
 class Model(object):
@@ -65,9 +67,13 @@ class Model(object):
         cf = configparser.ConfigParser()
         cf.read(config_file)
         if self.name.startswith('prodlda') or self.name.startswith('ctm'):
-            self.max_sum = int(cf.get('restapi', 'max_sum_neural_models'))
+            self.thetas_max_sum = int(
+                cf.get('restapi', 'max_sum_neural_models'))
         else:
-            self.max_sum = int(cf.get('restapi', 'max_sum'))
+            self.thetas_max_sum = int(cf.get('restapi', 'thetas_max_sum'))
+        self.betas_max_sum = int(cf.get('restapi', 'betas_max_sum'))
+        # self.thetas_max_sum = 1000
+        # self.betas_max_sum = 10000
 
         # Get model information from TMmodel
         self.tmmodel = TMmodel(self.path_to_model.joinpath("TMmodel"))
@@ -90,7 +96,7 @@ class Model(object):
             tr_config = json.load(fin)
 
         # Get model information as dataframe, where each row is a topic
-        df, vocab_id2w = self.tmmodel.to_dataframe()
+        df, vocab_id2w, vocab = self.tmmodel.to_dataframe()
         df = df.apply(pd.Series.explode)
         df.reset_index(drop=True)
         df["id"] = [f"t{i}" for i in range(len(df))]
@@ -99,60 +105,52 @@ class Model(object):
         cols = cols[-1:] + cols[:-1]
         df = df[cols]
 
-        # Get words in each topic
-
-        def get_tp_words(vector: np.array,
-                         max_sum: int,
-                         vocab_id2w: dict) -> str:
-            """Get the words in a topic given the topic-word probabilities (words whose topic probability is larger than 0).
-
-            Parameters
-            ----------
-            vector: np.array
-                Topic-word probabilities.
-            max_sum: int
-                 Number representing the maximum sum of the vector elements.
-            vocab_id2w: dict
-                Dictionary mapping word ids to words.
-
-            Returns
-            -------
-            str
-                A string with the words in the topic.
-            """
+        # Get betas scale to self.max_sum
+        def get_betas_scale(vector: np.array,
+                            max_sum: int):
             vector = sum_up_to(vector, max_sum)
+            return vector
+
+        df["betas_scale"] = df["betas"].apply(
+            lambda x: get_betas_scale(x, self.betas_max_sum))
+
+        # Get words in each topic
+        def get_tp_words(vector: np.array,
+                         vocab_id2w: dict) -> str:
             return ", ".join([vocab_id2w[str(idx)] for idx, val in enumerate(vector) if val != 0])
 
         df["vocab"] = df["betas"].apply(
-            lambda x: get_tp_words(x, self.max_sum, vocab_id2w))
+            lambda x: get_tp_words(x, vocab_id2w))
 
         # Get betas string representation
         def get_tp_str_rpr(vector: np.array,
-                           max_sum: int,
                            vocab_id2w: dict) -> str:
-            """Get the string representation of the topic-word probabilities.
-
-            Parameters
-            ----------
-            vector: np.array
-                Topic-word probabilities.
-            max_sum: int
-                 Number representing the maximum sum of the vector elements.
-            vocab_id2w: dict
-                Dictionary mapping word ids to words.
-
-            Returns
-            -------
-            str
-                A string with the topic-word probabilities.
-            """
-            vector = sum_up_to(vector, max_sum)
             rpr = " ".join([f"{vocab_id2w[str(idx)]}|{val}" for idx,
                            val in enumerate(vector) if val != 0]).rstrip()
             return rpr
 
-        df["betas"] = df["betas"].apply(
-            lambda x: get_tp_str_rpr(x, self.max_sum, vocab_id2w))
+        df["betas"] = df["betas_scale"].apply(
+            lambda x: get_tp_str_rpr(x, vocab_id2w))
+
+        def get_top_words_betas(row, vocab, n_words=15):
+            # a row is a topic
+            word_tfidf_dict = {vocab[idx2]: row["betas_ds"][idx2]
+                               for idx2 in np.argsort(row["betas_ds"])[::-1][:n_words]}
+
+            # Transform such as value0 = 100 % and following values are relative to value0
+            value0 = word_tfidf_dict[list(word_tfidf_dict.keys())[0]]
+            word_tfidf_dict = {word: round((val/value0)*100, 3)
+                               for word, val in word_tfidf_dict.items()}
+            rpr = " ".join(
+                [f"{word}|{word_tfidf_dict[word]}" for word in word_tfidf_dict.keys()]).rstrip()
+
+            return rpr
+
+        df['top_words_betas'] = df.apply(
+            lambda row: get_top_words_betas(row, vocab), axis=1)
+
+        # Drop betas scale because it is not needed
+        df = df.drop(columns=["betas_scale", "betas_ds"])
 
         # Get topic coordinates in cluster space
         df["coords"] = self.coords
@@ -185,7 +183,7 @@ class Model(object):
         # Get corpus path and name of the collection
         self.corpus = tr_config["TrDtSet"]
         self.corpus_name = pathlib.Path(tr_config["TrDtSet"]).name
-        if self.corpus_name.endswith(".parquet"):
+        if self.corpus_name.endswith(".parquet") or self.corpus_name.endswith(".json"):
             self.corpus_name = self.corpus_name.split(".")[0].lower()
 
         # Keys for dodument-topic proportions and similarity that will be used within the corpus collection
@@ -238,7 +236,7 @@ class Model(object):
 
             self._logger.info("Attaining thetas rpr...")
             thetas_dense = self.thetas.todense()
-            doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], 1000)
+            doc_tpc_rpr = [get_doc_str_rpr(thetas_dense[row, :], self.thetas_max_sum)
                            for row in range(len(thetas_dense))]
 
             # Get similarities string representation
@@ -310,12 +308,12 @@ class Model(object):
 
 
 # if __name__ == '__main__':
-    # model = Model(pathlib.Path(
-    #    "/export/data_ml4ds/IntelComp/EWB/data/source/Mallet-30"))
+#    model = Model(pathlib.Path(
+#       "/export/data_ml4ds/IntelComp/EWB/data/source/HFRI-30"))
     # json_lst = model.get_model_info_update(action='set')
     # pos = model.get_topic_pos()
     # print(json_lst[0])
-    # df = model.get_model_info()
+#    df = model.get_model_info()
     # print(df[0].keys())
     # upt = model.get_corpora_model_update()
     # print(upt)
