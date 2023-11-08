@@ -134,11 +134,11 @@
   <field name="Call" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="field1" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="field2" type="text_general" indexed="true" stored="true" multiValued="false" />
-  <field name="Project_ID" type="pint" indexed="true" stored="true" multiValued="false" />
-  <field name="Host_Institutions__Greek_" type="text_general" indexed="true" stored="true" multiValued="false" />
-  <field name="field1_code" type="pfloat" indexed="true" stored="true" multiValued="false" />
-  <field name="field1_name" type="text_general" indexed="true" stored="true" multiValued="false" />
-  <field name="Gender_IP" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="ProjectID" type="pint" indexed="true" stored="true" multiValued="false" />
+  <field name="HostInstitutions" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="field1Code" type="pfloat" indexed="true" stored="true" multiValued="false" />
+  <field name="field1Name" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="GenderIP" type="text_general" indexed="true" stored="true" multiValued="false" />
 
   <!-- Scopus fields  -->
   <field name="issn" type="text_general" indexed="true" stored="true" multiValued="false" />

@@ -1071,7 +1071,8 @@ class EWBSolrClient(SolrClient):
         
         # 6. Return a dictionary with names more understandable to the end user
         for dict in results.docs:
-            dict["thetas"] = dict.pop('doctpc_' + model_name)
+            if 'doctpc_' + model_name in dict.keys():
+                dict["thetas"] = dict.pop('doctpc_' + model_name)
             dict["num_words_per_doc"] = dict.pop("nwords_per_doc")
         
         return results.docs, sc
