@@ -134,7 +134,7 @@ class EWBSolrClient(SolrClient):
         corpus_lst = [doc["corpus_name"] for doc in results.docs]
 
         return corpus_lst, sc
-
+    
     def get_corpus_coll_fields(self, corpus_col: str) -> Union[List, int]:
         """Returns a list of the fields of the corpus collection given by 'corpus_col' that have been defined in the Solr server.
 
@@ -160,6 +160,101 @@ class EWBSolrClient(SolrClient):
             return
 
         return results.docs[0]["fields"], sc
+    
+    def get_corpus_raw_path(self, corpus_col: str) -> Union[pathlib.Path, int]:
+        """Returns the path of the logical corpus file associated with the corpus collection given by 'corpus_col'.
+        
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose path is to be retrieved.
+        
+        Returns
+        -------
+        path: pathlib.Path
+            Path of the logical corpus file associated with the corpus collection given by 'corpus_col'.
+        sc: int
+            Status code of the request
+        """
+        
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                            col_name=self.corpus_col,
+                                            fl="corpus_path")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting corpus path of {corpus_col}. Aborting operation...")
+            return
+        
+        self.logger.info(results.docs[0]["corpus_path"])
+        return pathlib.Path(results.docs[0]["corpus_path"]), sc
+
+    def get_id_corpus_in_corpora(self, corpus_col: str) -> Union[int, int]:
+        """Returns the ID of the corpus collection given by 'corpus_col' in the self.corpus_col collection.
+        
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose ID is to be retrieved.
+        
+        Returns
+        -------
+        id: int
+            ID of the corpus collection given by 'corpus_col' in the self.corpus_col collection.
+        """
+        
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                         col_name=self.corpus_col,
+                                         fl="id")
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting corpus ID. Aborting operation...")
+            return
+        
+        return results.docs[0]["id"], sc
+    
+    def get_corpus_EWBdisplayed(self, corpus_col: str) -> Union[List, int]:
+        """Returns a list of the fileds of the corpus collection indicating what metadata will be displayed in the EWB upon user request.
+        
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose EWBdisplayed are to be retrieved.
+        sc: int
+            Status code of the request
+        """
+        
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                        col_name=self.corpus_col,
+                                        fl="EWBdisplayed")
+        
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting EWBdisplayed of {corpus_col}. Aborting operation...")
+            return
+        
+        return results.docs[0]["EWBdisplayed"], sc
+        
+    def get_corpus_SearcheableField(self, corpus_col: str) -> Union[List, int]:
+        """Returns a list of the fields used for autocompletion in the document search in the similarities function and in the document search function.
+        
+        Parameters
+        ----------
+        corpus_col : str
+            Name of the corpus collection whose SearcheableField are to be retrieved.
+        sc: int
+            Status code of the request
+        """
+        
+        sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
+                                        col_name=self.corpus_col,
+                                        fl="SearcheableFields")
+        
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting SearcheableField of {corpus_col}. Aborting operation...")
+            return
+        
+        return results.docs[0]["SearcheableFields"], sc
 
     def get_corpus_models(self, corpus_col: str) -> Union[List, int]:
         """Returns a list with the models associated with the corpus given by 'corpus_col'
@@ -278,6 +373,58 @@ class EWBSolrClient(SolrClient):
                 f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
             return False
         return True
+    
+    def modify_corpus_SearcheableFields(
+        self,
+        SearcheableFields: str,
+        corpus_col: str,
+        action:str) -> None:
+        """
+        
+        """
+        
+        # 1. Get full path 
+        corpus_path, _ = self.get_corpus_raw_path(corpus_col)
+        
+        SearcheableFields = SearcheableFields.split(",")
+        self.logger.info(corpus_path)
+        self.logger.info(type(corpus_path))
+        self.logger.info("This are the searchable fields")
+        self.logger.info(SearcheableFields)
+        self.logger.info("This is the action")
+        self.logger.info(action)
+        
+        # 2. Check that corpus_col is indeed a corpus collection
+        if not self.check_is_corpus(corpus_col):
+            return
+        
+        self.logger.info("LLEGA AQUI")
+                 
+        # 3. Create Corpus object, get SearcheableField and index information in corpus collection
+        corpus = Corpus(corpus_path)
+        corpus_update, new_SearcheableFields = corpus.get_corpus_SearcheableField_update(
+            new_SearcheableFields=SearcheableFields,
+            action=action)
+        self.logger.info(
+            f"-- -- Indexing new SearcheableField information in {corpus_col} collection")
+        self.index_documents(corpus_update, corpus_col, self.batch_size)
+        self.logger.info(
+            f"-- -- Indexing new SearcheableField information in {self.corpus_col} completed.")
+        
+        # 4. Get self.corpus_col update 
+        corpora_id, _ = self.get_id_corpus_in_corpora(corpus_col)
+        corpora_update = corpus.get_corpora_SearcheableField_update(
+            id=corpora_id,
+            field_update=new_SearcheableFields,
+            action="set")
+        self.logger.info(
+            f"-- -- Indexing new SearcheableField information in {self.corpus_col} starts.")
+        self.index_documents(corpora_update, self.corpus_col, self.batch_size)
+        self.logger.info(
+            f"-- -- Indexing new SearcheableField information in {self.corpus_col} completed.")
+        
+        return
+    
 
     # ======================================================
     # MODEL-RELATED OPERATIONS
@@ -309,15 +456,11 @@ class EWBSolrClient(SolrClient):
         # 3. Create Model object and extract info from the corpus to index
         model = Model(model_to_index)
         json_docs, corpus_name = model.get_model_info_update(action='set')
-        sc, results = self.execute_query(q='corpus_name:'+corpus_name,
-                                         col_name=self.corpus_col,
-                                         fl="id")
-        if sc != 200:
-            self.logger.error(
-                f"-- -- Corpus collection not found in {self.corpus_col}")
+        if not self.check_is_corpus(corpus_name):
             return
+        corpora_id, _ = self.get_id_corpus_in_corpora(corpus_name)
         field_update = model.get_corpora_model_update(
-            id=results.docs[0]["id"], action='add')
+            id=corpora_id, action='add')
 
         # 4. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
         self.logger.info(
@@ -564,6 +707,15 @@ class EWBSolrClient(SolrClient):
         self.logger.info(f"Similarities pairs information extracted in: {(time.perf_counter() - t_start)/60} minutes")
         
         return df[['id_1', 'id_2', 'score']].to_dict('records')
+    
+    def add_list_relevant_topics(self, model_col):
+        
+        # Get model info updates with only id
+        model_json, sc = self.do_Q10(model_col)
+        
+        # TODO: See how list of relevant topics for user and models needs to be provided
+        
+        return
 
     # ======================================================
     # QUERIES
@@ -658,12 +810,17 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q2. Aborting operation...")
             return
-
-        # Filter out metadata fields that we don't consider metadata
-        #meta_fields = [field for field in results.docs[0]
-                       #['fields'] if field not in self.no_meta_fields and not field.startswith("doctpc_")]
+                       
+        # 3. Get EWBdisplayed fields of corpus_col
+        EWBdisplayed, sc = self.get_corpus_EWBdisplayed(corpus_col)
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error getting EWBdisplayed of {corpus_col}. Aborting operation...")
+            return
+        
+        # 4. Filter metadata fields to be displayed in the EWB
         meta_fields = [field for field in results.docs[0]
-                       ['fields'] if field not in self.no_meta_fields]
+                       ['fields'] if field in EWBdisplayed]
         
         return {'metadata_fields': meta_fields}, sc
     
@@ -946,7 +1103,7 @@ class EWBSolrClient(SolrClient):
 
         # 2. Execute query
         q7 = self.querier.customize_Q7(
-            title_field='title',
+            title_field='SearcheableField',
             string=string,
             start=start,
             rows=rows)
@@ -1080,7 +1237,8 @@ class EWBSolrClient(SolrClient):
     def do_Q10(self,
                model_col: str,
                start: str,
-               rows: str) -> Union[dict, int]:
+               rows: str,
+               only_id: bool) -> Union[dict, int]:
         """Executes query Q10.
 
         Parameters
@@ -1111,7 +1269,8 @@ class EWBSolrClient(SolrClient):
         start, rows = self.custom_start_and_rows(start, rows, model_col)
 
         # 4. Execute query
-        q10 = self.querier.customize_Q10(start=start, rows=rows)
+        q10 = self.querier.customize_Q10(
+            start=start, rows=rows, only_id=only_id)
         params = {k: v for k, v in q10.items() if k != 'q'}
 
         sc, results = self.execute_query(

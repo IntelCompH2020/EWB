@@ -73,7 +73,7 @@ q7_parser = reqparse.RequestParser()
 q7_parser.add_argument(
     'corpus_collection', help='Name of the corpus collection', required=True)
 q7_parser.add_argument(
-    'string', help="String to be search in the title field'", required=True)
+    'string', help="String to be search in the SearcheableField field'", required=True)
 q7_parser.add_argument(
     'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
 q7_parser.add_argument(

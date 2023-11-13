@@ -28,6 +28,26 @@ parser2 = reqparse.RequestParser()
 parser2.add_argument(
     'corpus_col', help="Name of the corpus collection to list its models")
 
+parser3 = reqparse.RequestParser()
+parser3.add_argument(
+    'corpus_col', help="Name of the corpus collection to list its EWBdisplayed fields")
+
+parser4 = reqparse.RequestParser()
+parser4.add_argument(
+    'corpus_col', help="Name of the corpus collection to list its SearcheableField fields")
+
+parser5 = reqparse.RequestParser()
+parser5.add_argument(
+    'corpus_col', help="Name of the corpus collection")
+parser5.add_argument(
+    'searchable_fields', help="List with the new fields to be added as searchable fields of the corpus collection")
+
+parser6 = reqparse.RequestParser()
+parser6.add_argument(
+    'corpus_col', help="Name of the corpus collection")
+parser6.add_argument(
+    'searchable_fields', help="List with the fields to be deleted from the searchable fields of the corpus collection")
+
 
 @api.route('/indexCorpus/')
 class IndexCorpus(Resource):
@@ -73,3 +93,60 @@ class listCorpusModels(Resource):
             return corpus_lst, code
         except Exception as e:
             return str(e), 500
+        
+@api.route('/listCorpusEWBdisplayed')
+class listCorpusEWBdisplayed(Resource):
+    @api.doc(parser=parser3)
+    def get(self):
+        args = parser3.parse_args()
+        corpus_col = args['corpus_col']
+        try:
+            SearcheableField_lst, code = sc.get_corpus_EWBdisplayed(corpus_col=corpus_col)
+            return SearcheableField_lst, code
+        except Exception as e:
+            return str(e), 500
+        
+@api.route('/listCorpusSearcheableFields/')
+class listCorpusSearcheableFields(Resource):
+    @api.doc(parser=parser4)
+    def get(self):
+        args = parser4.parse_args()
+        corpus_col = args['corpus_col']
+        try:
+            SearcheableField_lst, code = sc.get_corpus_SearcheableField(corpus_col=corpus_col)
+            return SearcheableField_lst, code
+        except Exception as e:
+            return str(e), 500
+        
+@api.route('/addSearcheableFields/')
+class addSearcheableFields(Resource):
+    @api.doc(parser=parser5)
+    def post(self):
+        args = parser5.parse_args()
+        corpus_col = args['corpus_col']
+        search_fields = args['searchable_fields']
+        try:
+            sc.modify_corpus_SearcheableFields(
+                SearcheableFields=search_fields,
+                corpus_col=corpus_col,
+                action="add")
+            return '', 200
+        except Exception as e:
+            return str(e), 500
+        
+@api.route('/deleteSearcheableFields/')
+class addSearcheableFields(Resource):
+    @api.doc(parser=parser6)
+    def post(self):
+        args = parser6.parse_args()
+        corpus_col = args['corpus_col']
+        search_fields = args['searchable_fields']
+        try:
+            sc.modify_corpus_SearcheableFields(
+                SearcheableFields=search_fields,
+                corpus_col=corpus_col,
+                action="delete")
+            return '', 200
+        except Exception as e:
+            return str(e), 500
+        

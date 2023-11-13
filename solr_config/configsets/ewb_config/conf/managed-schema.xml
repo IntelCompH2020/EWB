@@ -112,6 +112,9 @@
 
   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
   <field name="models" type="string" indexed="true" stored="true" multiValued="true" />
+  <field name="SearcheableFields" type="string" indexed="true" stored="true" multiValued="true" />
+  <field name="corpus_path" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+
   <!-- docValues are enabled by default for long type so we don't need to index the version field  -->
   <field name="_version_" type="plong" indexed="false" stored="false" />
 
@@ -125,6 +128,7 @@
   <field name="startDate" type="pdate" indexed="true" stored="true" multiValued="false" />
   <field name="date" type="pdate" indexed="true" stored="true" multiValued="false" />
   <field name="nwords_per_doc" type="pint" indexed="true" stored="true" multiValued="false" />
+  <field name="SearcheableField" type="text_general" indexed="true" stored="true" multiValued="false" />
   
   <!-- HFRI fields  -->
   <field name="Summary" type="text_general" indexed="true" stored="true" multiValued="false" />
@@ -409,6 +413,9 @@
     termPositions="true" termVectors="true" multiValued="false" />
 
   <field name="bow" type="VectorField" indexed="true" termOffsets="true" stored="true"
+    termPositions="true" termVectors="true" multiValued="false" />
+
+  <field name="userRelevantTopics" type="VectorField" indexed="true" termOffsets="true" stored="true"
     termPositions="true" termVectors="true" multiValued="false" />
 
   <!-- <fieldType name="text_tfdl" class="solr.TextField" omitPositions="true" >

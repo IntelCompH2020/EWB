@@ -486,7 +486,8 @@ class Queries(object):
 
     def customize_Q10(self,
                       start: str,
-                      rows: str) -> dict:
+                      rows: str,
+                      only_id: bool) -> dict:
         """Customizes query Q10 'getModelInfo'
 
         Parameters
@@ -501,12 +502,20 @@ class Queries(object):
             Customized query Q10.
         """
 
-        custom_q10 = {
-            'q': self.Q10['q'],
-            'fl': self.Q10['fl'],
-            'start': self.Q10['start'].format(start),
-            'rows': self.Q10['rows'].format(rows),
-        }
+        if only_id:
+            custom_q10 = {
+                'q': self.Q10['q'],
+                'fl': 'id',
+                'start': self.Q10['start'].format(start),
+                'rows': self.Q10['rows'].format(rows),
+            }
+        else:
+            custom_q10 = {
+                'q': self.Q10['q'],
+                'fl': self.Q10['fl'],
+                'start': self.Q10['start'].format(start),
+                'rows': self.Q10['rows'].format(rows),
+            }
 
         return custom_q10
 

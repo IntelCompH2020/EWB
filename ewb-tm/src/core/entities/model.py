@@ -285,6 +285,7 @@ class Model(object):
 
     def get_corpora_model_update(self, id: int, action: str) -> List[dict]:
         """Generates an update for the CORPUS_COL collection.
+        
         Parameters
         ----------
         id: int
@@ -305,6 +306,14 @@ class Model(object):
                      }]
 
         return json_lst
+    
+    def get_user_relevant_topics_update(self, current_json):
+        
+        # get results from model_info
+        
+        
+        
+        return
 
 
 # if __name__ == '__main__':

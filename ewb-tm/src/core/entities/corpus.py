@@ -9,11 +9,13 @@ import configparser
 import json
 from typing import List
 from gensim.corpora import Dictionary
-
+import pathlib
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
 from src.core.entities.utils import (convert_datetime_to_strftime,
                                      parseTimeINSTANT)
+#from utils import (convert_datetime_to_strftime,
+#                                     parseTimeINSTANT)
 
 
 class Corpus(object):
@@ -22,7 +24,7 @@ class Corpus(object):
     """
 
     def __init__(self,
-                 path_to_logical: str,
+                 path_to_logical: pathlib.Path,
                  logger=None,
                  config_file: str = "/config/config.cf") -> None:
         """Init method.
@@ -47,12 +49,15 @@ class Corpus(object):
         with path_to_logical.open('r', encoding='utf8') as fin:
             self._logical_corpus = json.load(fin)
 
+        self.path_to_logical = path_to_logical
         self.name = path_to_logical.stem.lower()
+        self.name = "hfri"
         self.fields = None
 
         # Read configuration from config file
         cf = configparser.ConfigParser()
         cf.read(config_file)
+        #cf.read("/export/data_ml4ds/IntelComp/EWB/code/EWB/ewb_config/config.cf")
         self._logger.info(f"Sections {cf.sections()}")
         if self.name + "-config" in cf.sections():
             section = self.name + "-config"
@@ -63,6 +68,14 @@ class Corpus(object):
                 f"Logical corpus configuration {self.name} not found in config file.")
         self.title_field = cf.get(section, "title_field")
         self.date_field = cf.get(section, "date_field")
+        self.ewb_displayed = cf.get(section, "EWBdisplayed").split(",")
+        self.sercheable_field = cf.get(section, "SearcheableField").split(",")
+        if self.title_field in self.sercheable_field:
+            self.sercheable_field.remove(self.title_field)
+            self.sercheable_field.append("title")
+        if self.date_field in self.sercheable_field:
+            self.sercheable_field.remove(self.date_field)
+            self.sercheable_field.append("date")
         
         return
 
@@ -81,6 +94,7 @@ class Corpus(object):
         else:
             DtSet = self._logical_corpus['Dtsets'][0]
             ddf = dd.read_parquet(DtSet['parquet']).fillna("")
+            self.corpus_path = DtSet['parquet']
             idfld = DtSet["idfld"]
 
             # Rename id-field to id, title-field to title and date-field to date
@@ -111,6 +125,9 @@ class Corpus(object):
         df, cols = convert_datetime_to_strftime(df)
         df[cols] = df[cols].applymap(parseTimeINSTANT)
         
+        # Create SearcheableField by concatenating all the fields that are marked as SearcheableField in the config file
+        df['SearcheableField'] = df[self.sercheable_field].apply(lambda x: ' '.join(x.astype(str)), axis=1)        
+        
         # Save corpus fields
         self.fields = df.columns.tolist()
 
@@ -123,14 +140,82 @@ class Corpus(object):
 
         fields_dict = [{"id": id,
                         "corpus_name": self.name,
-                        "fields": self.fields}]
+                        "corpus_path": self.path_to_logical.as_posix(),
+                        "fields": self.fields,
+                        "EWBdisplayed": self.ewb_displayed,
+                        "SearcheableFields": self.sercheable_field}]
 
         return fields_dict
+    
+    def get_corpora_SearcheableField_update(
+        self,
+        id:int,
+        field_update:str,
+        action:str
+    ) -> List[dict]:
+        
+        json_lst = [{"id": id,
+                    "SearcheableFields": {action: [field_update]},
+                    }]
+        
+        return json_lst
+    
+    def get_corpus_SearcheableField_update(
+        self,
+        new_SearcheableFields:str,
+        action:str
+    ):  
+        
+        self._logger.info(self._logical_corpus['Dtsets'])
+        DtSet = self._logical_corpus['Dtsets'][0]
+        self._logger.info(self._logger)
+        ddf = dd.read_parquet(DtSet['parquet']).fillna("")
+        idfld = DtSet["idfld"]
 
+        # Rename id-field to id, title-field to title and date-field to date
+        ddf = ddf.rename(
+            columns={idfld: "id",
+                     self.title_field: "title",
+                     self.date_field: "date"})
 
-# if __name__ == '__main__':
-#     corpus = Corpus("/Users/lbartolome/Documents/GitHub/EWB/data/Cordis.json")
-#     json_lst = corpus.get_docs_raw_info()
-#     import pdb
-#     pdb.set_trace()
-#     # print(json_lst[0].keys())
+        with ProgressBar():
+            df = ddf.compute(scheduler='processes')
+            
+        if action == "add":
+            new_SearcheableFields = [el for el in new_SearcheableFields if el not in self.sercheable_field]
+            if self.title_field in new_SearcheableFields:
+                new_SearcheableFields.remove(self.title_field)
+                new_SearcheableFields.append("title")
+            if self.date_field in new_SearcheableFields:
+                new_SearcheableFields.remove(self.date_field)
+                new_SearcheableFields.append("date")
+            new_SearcheableFields = list(set(new_SearcheableFields + self.sercheable_field))
+        elif action == "delete":
+            if self.title_field in new_SearcheableFields:
+                new_SearcheableFields.remove(self.title_field)
+                new_SearcheableFields.append("title")
+            if self.date_field in new_SearcheableFields:
+                new_SearcheableFields.remove(self.date_field)
+                new_SearcheableFields.append("date")
+            new_SearcheableFields = [el for el in self.sercheable_field if el not in new_SearcheableFields]
+        
+        import pdb; pdb.set_trace()
+        df['SearcheableField'] = df[new_SearcheableFields].apply(lambda x: ' '.join(x.astype(str)), axis=1)
+        
+        not_keeps_cols = [el for el in df.columns.tolist() if el not in ["id","SearcheableField"]]
+        df = df.drop(not_keeps_cols, axis=1)
+        
+        # Create json from dataframe
+        json_str = df.to_json(orient='records')
+        json_lst = json.loads(json_str)
+        
+        new_list = [{"SearcheableField": {"set": d["SearcheableField"]}} for d in json_lst]
+
+        return new_list, new_SearcheableFields
+    
+
+#if __name__ == '__main__':
+#    corpus = Corpus(pathlib.Path("/export/data_ml4ds/IntelComp/EWB/data/source/HFRI_tests.json"))
+#    json_lst = corpus.get_docs_raw_info()
+#    new_list = corpus.get_corpus_SearcheableField_update(["Call"], action="add")
+#    fields_dict = corpus.get_corpora_update(1)
