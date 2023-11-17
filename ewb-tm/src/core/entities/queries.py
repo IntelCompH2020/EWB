@@ -128,10 +128,10 @@ class Queries(object):
         self.Q9 = {
             'q': '*:*',
             'sort': 'payload(doctpc_{},t{}) desc, nwords_per_doc desc',
-            'fl': 'doctpc_{}, nwords_per_doc, id',
+            'fl': 'payload(doctpc_{},t{}), nwords_per_doc, id',
             'start': '{}',
             'rows': '{}'
-        }
+        }#doctpc_{}
 
         # ================================================================
         # # Q10: getModelInfo
@@ -240,7 +240,20 @@ class Queries(object):
             'q': 'id:t{}',
             'fl': 'payload(betas,{})',
         }
+        
+        self.Q18 = {
+            'q': 'id:{}',
+            'fl': 'payload(bow,{})',
+        }
 
+        self.Q19 = {
+            'q': 'usersIsRelevant:{}',
+            'fl': 'id,alphas,top_words_betas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
+            'start': '{}',
+            'rows': '{}'
+        }
+        
+        
     def customize_Q1(self,
                      id: str,
                      model_name: str) -> dict:
@@ -477,7 +490,7 @@ class Queries(object):
         custom_q9 = {
             'q': self.Q9['q'],
             'sort': self.Q9['sort'].format(model_name, topic_id),
-            'fl': self.Q9['fl'].format(model_name),
+            'fl': self.Q9['fl'].format(model_name, topic_id),
             'start': self.Q9['start'].format(start),
             'rows': self.Q9['rows'].format(rows),
         }
@@ -723,3 +736,50 @@ class Queries(object):
         }
 
         return custom_q17
+    
+    def customize_Q18(self,
+                      ids: str,
+                      words: str,
+                      start:str,
+                      rows: str) -> dict:
+    
+        
+        custom_q18 = {
+            'q':  self.Q18['q'].format(' & id:'.join(ids)),
+            'fl': 'id, ' + ', '.join(self.Q18['fl'].format(word) for word in words),
+            'start': self.Q16['start'].format(start),
+            'rows': self.Q16['rows'].format(rows),
+        }
+
+        return custom_q18
+    
+
+    def customize_Q19(self,
+                      start: str,
+                      rows: str,
+                      user: str) -> dict:
+        """Customizes query Q19
+
+        Parameters
+        ----------
+        start: str
+            Start value.
+        rows: str
+            Number of rows to retrieve.
+        user: str
+            User name
+
+        Returns
+        -------
+        custom_q19: dict
+            Customized query Q19.
+        """
+
+        custom_q19 = {
+            'q': self.Q19['q'].format(user),
+            'fl': self.Q19['fl'],
+            'start': self.Q19['start'].format(start),
+            'rows': self.Q19['rows'].format(rows),
+        }
+
+        return custom_q19

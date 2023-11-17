@@ -150,12 +150,12 @@ class Corpus(object):
     def get_corpora_SearcheableField_update(
         self,
         id:int,
-        field_update:str,
+        field_update:list,
         action:str
     ) -> List[dict]:
         
         json_lst = [{"id": id,
-                    "SearcheableFields": {action: [field_update]},
+                    "SearcheableFields": {action: field_update},
                     }]
         
         return json_lst
@@ -199,8 +199,11 @@ class Corpus(object):
                 new_SearcheableFields.append("date")
             new_SearcheableFields = [el for el in self.sercheable_field if el not in new_SearcheableFields]
         
-        import pdb; pdb.set_trace()
+        self._logger.info("######################")
+        self._logger.info(new_SearcheableFields)
+        
         df['SearcheableField'] = df[new_SearcheableFields].apply(lambda x: ' '.join(x.astype(str)), axis=1)
+        self._logger.info(df)
         
         not_keeps_cols = [el for el in df.columns.tolist() if el not in ["id","SearcheableField"]]
         df = df.drop(not_keeps_cols, axis=1)
@@ -209,8 +212,13 @@ class Corpus(object):
         json_str = df.to_json(orient='records')
         json_lst = json.loads(json_str)
         
-        new_list = [{"SearcheableField": {"set": d["SearcheableField"]}} for d in json_lst]
-
+        new_list = []
+        for d in json_lst:
+            d["SearcheableField"] = {"set": d["SearcheableField"]}
+            new_list.append(d)
+    
+        self._logger.info(new_list)
+        
         return new_list, new_SearcheableFields
     
 

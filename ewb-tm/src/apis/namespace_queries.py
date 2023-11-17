@@ -173,6 +173,26 @@ q17_parser.add_argument(
 q17_parser.add_argument(
     'word', help='Word of interest to retrieve its topic-word distribution in the specified topic. If the word is not present, the distribution is 0.', required=True)
 
+q18_parser = reqparse.RequestParser()
+q18_parser.add_argument(
+    'corpus_name', help='Name of the corpus.', required=True)
+q18_parser.add_argument(
+    'ids', help='IDs of the documents separated by commas', required=True)
+q18_parser.add_argument(
+    'words', help='Words to get the BOW from, separated by commas', required=True)
+
+q19_parser = reqparse.RequestParser()
+q19_parser.add_argument(
+    'model_collection', help='Name of the model collection', required=True)
+q19_parser.add_argument(
+    'user', help='Identifier/name of the user whose relevant topics are going to be retrieved', required=True)
+q19_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q19_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
+
+
+
 @api.route('/getThetasDocById/')
 class getThetasDocById(Resource):
     @api.doc(parser=q1_parser)
@@ -337,11 +357,11 @@ class getModelInfo(Resource):
         model_collection = args['model_collection']
         start = args['start']
         rows = args['rows']
-
         try:
             return sc.do_Q10(model_col=model_collection,
                             start=start,
-                            rows=rows)
+                            rows=rows,
+                            only_id=False)
         except Exception as e:
             return str(e), 500
 
@@ -468,5 +488,38 @@ class getBetasByWordAndTopicId(Resource):
             return sc.do_Q17(model_name=model_name,
                             tpc_id=tpc_id,
                             word=word)
+        except Exception as e:
+            return str(e), 500
+        
+@api.route('/getBOWbyDocsIDs/')
+class getBOWbyDocsIDs(Resource):
+    @api.doc(parser=q18_parser)
+    def get(self):
+        args = q18_parser.parse_args()
+        corpus_name = args['corpus_name']
+        ids = args['ids']
+        words = args['words']
+
+        try:
+            return sc.do_Q18(corpus_col=corpus_name,
+                            ids=ids,
+                            words=words)
+        except Exception as e:
+            return str(e), 500
+        
+@api.route('/getUserRelevantTopics/')
+class getUserRelevantTopics(Resource):
+    @api.doc(parser=q19_parser)
+    def get(self):
+        args = q19_parser.parse_args()
+        model_collection = args['model_collection']
+        user = args['user']
+        start = args['start']
+        rows = args['rows']
+        try:
+            return sc.do_Q19(model_col=model_collection,
+                            start=start,
+                            rows=rows,
+                            user=user)
         except Exception as e:
             return str(e), 500

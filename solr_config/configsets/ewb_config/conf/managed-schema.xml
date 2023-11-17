@@ -187,6 +187,7 @@
     multiValued="false" />
   <field name="vocab" type="text_general" indexed="true" stored="true" multiValued="false" />
   <field name="tpc_labels" type="text_general" indexed="true" stored="true" multiValued="false" />
+  <field name="usersIsRelevant" type="string" indexed="true" stored="true" multiValued="true" />
 
   <field name="_text_" type="text_general" indexed="true" stored="false" multiValued="true" />
 

@@ -40,13 +40,13 @@ parser5 = reqparse.RequestParser()
 parser5.add_argument(
     'corpus_col', help="Name of the corpus collection")
 parser5.add_argument(
-    'searchable_fields', help="List with the new fields to be added as searchable fields of the corpus collection")
+    'searchable_fields', help="Fields to be added as searchable fields of the corpus collection, separated by commas")
 
 parser6 = reqparse.RequestParser()
 parser6.add_argument(
     'corpus_col', help="Name of the corpus collection")
 parser6.add_argument(
-    'searchable_fields', help="List with the fields to be deleted from the searchable fields of the corpus collection")
+    'searchable_fields', help="Fields to be added as searchable fields of the corpus collection, separated by commas")
 
 
 @api.route('/indexCorpus/')
@@ -135,7 +135,7 @@ class addSearcheableFields(Resource):
             return str(e), 500
         
 @api.route('/deleteSearcheableFields/')
-class addSearcheableFields(Resource):
+class deleteSearcheableFields(Resource):
     @api.doc(parser=parser6)
     def post(self):
         args = parser6.parse_args()

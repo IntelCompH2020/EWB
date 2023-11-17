@@ -8,6 +8,7 @@ Date: 17/04/2023
 import configparser
 import logging
 import pathlib
+import re
 import time
 import pandas as pd
 from typing import List, Union
@@ -39,7 +40,7 @@ class EWBSolrClient(SolrClient):
 
         # Create InferencerClient to send requests to the Inferencer API
         self.inferencer = EWBInferencerClient(logger)
-        
+
         return
 
     # ======================================================
@@ -134,7 +135,7 @@ class EWBSolrClient(SolrClient):
         corpus_lst = [doc["corpus_name"] for doc in results.docs]
 
         return corpus_lst, sc
-    
+
     def get_corpus_coll_fields(self, corpus_col: str) -> Union[List, int]:
         """Returns a list of the fields of the corpus collection given by 'corpus_col' that have been defined in the Solr server.
 
@@ -160,15 +161,15 @@ class EWBSolrClient(SolrClient):
             return
 
         return results.docs[0]["fields"], sc
-    
+
     def get_corpus_raw_path(self, corpus_col: str) -> Union[pathlib.Path, int]:
         """Returns the path of the logical corpus file associated with the corpus collection given by 'corpus_col'.
-        
+
         Parameters
         ----------
         corpus_col : str
             Name of the corpus collection whose path is to be retrieved.
-        
+
         Returns
         -------
         path: pathlib.Path
@@ -176,32 +177,32 @@ class EWBSolrClient(SolrClient):
         sc: int
             Status code of the request
         """
-        
+
         sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
-                                            col_name=self.corpus_col,
-                                            fl="corpus_path")
+                                         col_name=self.corpus_col,
+                                         fl="corpus_path")
         if sc != 200:
             self.logger.error(
                 f"-- -- Error getting corpus path of {corpus_col}. Aborting operation...")
             return
-        
+
         self.logger.info(results.docs[0]["corpus_path"])
         return pathlib.Path(results.docs[0]["corpus_path"]), sc
 
     def get_id_corpus_in_corpora(self, corpus_col: str) -> Union[int, int]:
         """Returns the ID of the corpus collection given by 'corpus_col' in the self.corpus_col collection.
-        
+
         Parameters
         ----------
         corpus_col : str
             Name of the corpus collection whose ID is to be retrieved.
-        
+
         Returns
         -------
         id: int
             ID of the corpus collection given by 'corpus_col' in the self.corpus_col collection.
         """
-        
+
         sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
                                          col_name=self.corpus_col,
                                          fl="id")
@@ -209,12 +210,12 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error getting corpus ID. Aborting operation...")
             return
-        
+
         return results.docs[0]["id"], sc
-    
+
     def get_corpus_EWBdisplayed(self, corpus_col: str) -> Union[List, int]:
         """Returns a list of the fileds of the corpus collection indicating what metadata will be displayed in the EWB upon user request.
-        
+
         Parameters
         ----------
         corpus_col : str
@@ -222,21 +223,21 @@ class EWBSolrClient(SolrClient):
         sc: int
             Status code of the request
         """
-        
+
         sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
-                                        col_name=self.corpus_col,
-                                        fl="EWBdisplayed")
-        
+                                         col_name=self.corpus_col,
+                                         fl="EWBdisplayed")
+
         if sc != 200:
             self.logger.error(
                 f"-- -- Error getting EWBdisplayed of {corpus_col}. Aborting operation...")
             return
-        
+
         return results.docs[0]["EWBdisplayed"], sc
-        
+
     def get_corpus_SearcheableField(self, corpus_col: str) -> Union[List, int]:
         """Returns a list of the fields used for autocompletion in the document search in the similarities function and in the document search function.
-        
+
         Parameters
         ----------
         corpus_col : str
@@ -244,16 +245,16 @@ class EWBSolrClient(SolrClient):
         sc: int
             Status code of the request
         """
-        
+
         sc, results = self.execute_query(q='corpus_name:"'+corpus_col+'"',
-                                        col_name=self.corpus_col,
-                                        fl="SearcheableFields")
-        
+                                         col_name=self.corpus_col,
+                                         fl="SearcheableFields")
+
         if sc != 200:
             self.logger.error(
                 f"-- -- Error getting SearcheableField of {corpus_col}. Aborting operation...")
             return
-        
+
         return results.docs[0]["SearcheableFields"], sc
 
     def get_corpus_models(self, corpus_col: str) -> Union[List, int]:
@@ -373,33 +374,25 @@ class EWBSolrClient(SolrClient):
                 f"-- -- {corpus_col} does not have the field doctpc_{model_name}. Aborting operation...")
             return False
         return True
-    
+
     def modify_corpus_SearcheableFields(
-        self,
-        SearcheableFields: str,
-        corpus_col: str,
-        action:str) -> None:
+            self,
+            SearcheableFields: str,
+            corpus_col: str,
+            action: str) -> None:
         """
-        
+
         """
-        
-        # 1. Get full path 
+
+        # 1. Get full path
         corpus_path, _ = self.get_corpus_raw_path(corpus_col)
-        
+
         SearcheableFields = SearcheableFields.split(",")
-        self.logger.info(corpus_path)
-        self.logger.info(type(corpus_path))
-        self.logger.info("This are the searchable fields")
-        self.logger.info(SearcheableFields)
-        self.logger.info("This is the action")
-        self.logger.info(action)
-        
+
         # 2. Check that corpus_col is indeed a corpus collection
         if not self.check_is_corpus(corpus_col):
             return
-        
-        self.logger.info("LLEGA AQUI")
-                 
+
         # 3. Create Corpus object, get SearcheableField and index information in corpus collection
         corpus = Corpus(corpus_path)
         corpus_update, new_SearcheableFields = corpus.get_corpus_SearcheableField_update(
@@ -410,8 +403,8 @@ class EWBSolrClient(SolrClient):
         self.index_documents(corpus_update, corpus_col, self.batch_size)
         self.logger.info(
             f"-- -- Indexing new SearcheableField information in {self.corpus_col} completed.")
-        
-        # 4. Get self.corpus_col update 
+
+        # 4. Get self.corpus_col update
         corpora_id, _ = self.get_id_corpus_in_corpora(corpus_col)
         corpora_update = corpus.get_corpora_SearcheableField_update(
             id=corpora_id,
@@ -422,13 +415,13 @@ class EWBSolrClient(SolrClient):
         self.index_documents(corpora_update, self.corpus_col, self.batch_size)
         self.logger.info(
             f"-- -- Indexing new SearcheableField information in {self.corpus_col} completed.")
-        
+
         return
-    
 
     # ======================================================
     # MODEL-RELATED OPERATIONS
     # ======================================================
+
     def index_model(self, model_path: str) -> None:
         """
         Given the string path of a model created with the ITMT (i.e., the name of one of the folders representing a model within the TMmodels folder), it extracts the model information and that of the corpus used for its generation. It then adds a new field in the corpus collection of type 'VectorField' and name 'doctpc_{model_name}, and index the document-topic proportions in it. At last, it index the rest of the model information in the model collection.
@@ -465,7 +458,7 @@ class EWBSolrClient(SolrClient):
         # 4. Add field for the doc-tpc distribution associated with the model being indexed in the document associated with the corpus
         self.logger.info(
             f"-- -- Indexing model information of {model_name} in {self.corpus_col} starts.")
-        
+
         self.index_documents(field_update, self.corpus_col, self.batch_size)
         self.logger.info(
             f"-- -- Indexing of model information of {model_name} info in {self.corpus_col} completed.")
@@ -513,7 +506,8 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Error getting corpus collections in {self.corpus_col}. Aborting operation...")
             return
 
-        models_lst = [model for doc in results.docs if bool(doc) for model in doc["models"]]
+        models_lst = [model for doc in results.docs if bool(
+            doc) for model in doc["models"]]
         self.logger.info(f"-- -- Models found: {models_lst}")
 
         return models_lst, sc
@@ -603,6 +597,46 @@ class EWBSolrClient(SolrClient):
             return False
         return True
 
+    def modify_relevant_tpc(
+            self,
+            model_col,
+            topic_id,
+            user,
+            action):
+        """
+        Action can be 'add' or 'delete'
+        """
+
+        # 1. Check model_col is indeed a model collection
+        if not self.check_is_model(model_col):
+            return
+
+        # 2. Get model info updates with only id
+        start = None
+        rows = None
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
+        model_json, sc = self.do_Q10(
+            model_col=model_col,
+            start=start,
+            rows=rows,
+            only_id=True)
+
+        self.logger.info(model_json)
+
+        new_json = [
+            {**d, 'usersIsRelevant': {action: [user]}}
+            for d in model_json
+            if d['id'] == f"t{str(topic_id)}"
+        ]
+
+        self.logger.info(new_json)
+
+        self.logger.info(
+            f"-- -- Indexing User information in model {model_col} collection")
+        self.index_documents(new_json, model_col, self.batch_size)
+
+        return
+
     # ======================================================
     # AUXILIARY FUNCTIONS
     # ======================================================
@@ -643,7 +677,7 @@ class EWBSolrClient(SolrClient):
         df: pd.DataFrame,
         model_name: str,
         num_records: int
-        ) -> list:
+    ) -> list:
         """Function to process the pairs of documents in descendent order by the similarities for a given year.
 
         Parameters
@@ -655,17 +689,17 @@ class EWBSolrClient(SolrClient):
         -------
         df_sims: list
             List like dictionary [{column -> value}, … , {column -> value}] with the pairs of documents in descendent order by the similarities for a given year
-        """ 
+        """
         t_start = time.perf_counter()
-        
+
         # 0. Rename the 'sim_{model_name}' column to 'similarities'
         df.rename(columns={'sim_' + model_name: 'similarities'}, inplace=True)
-        
+
         # 1. Remove rows with score = 0.00
         df = df.loc[df['score'] != 0.00].copy()
         if df.empty:
             return
-        
+
         # 2. Apply the score filter to the 'similarities' column
         def indexes_filter(row):
             """Auxiliary function to filter the 'similarities' column by the 'indexes' column.
@@ -678,44 +712,40 @@ class EWBSolrClient(SolrClient):
             filtered_similarities = similarities[lower_limit:upper_limit]
 
             return ' '.join(filtered_similarities)
-        
+
         df['similarities'] = df.apply(indexes_filter, axis=1)
-        
+
         # 3. Remove the 'score' column
         df.drop(['score'], axis=1, inplace=True)
-       
+
         # 4. Split the 'similarities' column and create multiple rows
-        df = df.assign(similarities=df['similarities'].str.split(' ')).explode('similarities')
-        
+        df = df.assign(similarities=df['similarities'].str.split(
+            ' ')).explode('similarities')
+
         # 5. Divide the 'similarities' column into two columns
-        df[['id_similarities', 'similarities']] = df['similarities'].str.split('|', expand=True)
-        
+        df[['id_similarities', 'similarities']
+           ] = df['similarities'].str.split('|', expand=True)
+
         # 6. Filter rows where 'id_similarities' is empty
         df = df[df['id_similarities'] != '']
         df['id_similarities'] = df['id_similarities'].astype(int)
         df['similarities'] = df['similarities'].astype(float)
-        
+
         # 7. Remove rows where id_similarities is not in the 'id' column (not in the year specified by the user)
         df['id'] = df['id'].astype(int)
         df = df[df['id_similarities'].isin(df['id'])]
-       
+
         # 8. Sort the DataFrame from highest to lowest based on the "similarities" field and keep only the first num_records rows
-        df = df.sort_values(by='similarities', ascending=False).reset_index(drop=True).head(num_records)
-       
+        df = df.sort_values(by='similarities', ascending=False).reset_index(
+            drop=True).head(num_records)
+
         # 9. Rename the columns
-        df.rename(columns={'id': 'id_1', 'id_similarities': 'id_2', 'similarities': 'score'}, inplace=True)
-        self.logger.info(f"Similarities pairs information extracted in: {(time.perf_counter() - t_start)/60} minutes")
-        
+        df.rename(columns={'id': 'id_1', 'id_similarities': 'id_2',
+                  'similarities': 'score'}, inplace=True)
+        self.logger.info(
+            f"Similarities pairs information extracted in: {(time.perf_counter() - t_start)/60} minutes")
+
         return df[['id_1', 'id_2', 'score']].to_dict('records')
-    
-    def add_list_relevant_topics(self, model_col):
-        
-        # Get model info updates with only id
-        model_json, sc = self.do_Q10(model_col)
-        
-        # TODO: See how list of relevant topics for user and models needs to be provided
-        
-        return
 
     # ======================================================
     # QUERIES
@@ -775,7 +805,7 @@ class EWBSolrClient(SolrClient):
             resp = {'thetas': -1}
 
         return resp, sc
-    
+
     def do_Q2(self, corpus_col: str) -> Union[dict, int]:
         """
         Executes query Q2.
@@ -810,20 +840,20 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q2. Aborting operation...")
             return
-                       
+
         # 3. Get EWBdisplayed fields of corpus_col
         EWBdisplayed, sc = self.get_corpus_EWBdisplayed(corpus_col)
         if sc != 200:
             self.logger.error(
                 f"-- -- Error getting EWBdisplayed of {corpus_col}. Aborting operation...")
             return
-        
+
         # 4. Filter metadata fields to be displayed in the EWB
-        meta_fields = [field for field in results.docs[0]
-                       ['fields'] if field in EWBdisplayed]
-        
-        return {'metadata_fields': meta_fields}, sc
-    
+        #meta_fields = [field for field in results.docs[0]
+        #               ['fields'] if field in EWBdisplayed]
+
+        return {'metadata_fields': EWBdisplayed}, sc
+
     def do_Q3(self, col: str) -> Union[dict, int]:
         """Executes query Q3.
 
@@ -1041,6 +1071,8 @@ class EWBSolrClient(SolrClient):
         # 2. Get meta fields
         meta_fields_dict, sc = self.do_Q2(corpus_col)
         meta_fields = ','.join(meta_fields_dict['metadata_fields'])
+        
+        self.logger.info("this are the meta fields: " + meta_fields)
 
         # 3. Execute query
         q6 = self.querier.customize_Q6(id=doc_id, meta_fields=meta_fields)
@@ -1209,6 +1241,10 @@ class EWBSolrClient(SolrClient):
 
         # 3. Customize start and rows
         start, rows = self.custom_start_and_rows(start, rows, corpus_col)
+        # We limit the maximum number of results since they are top-documnts
+        # If more results are needed pagination should be used
+        if int(rows) > 100:
+            rows = "100"
 
         # 5. Execute query
         q9 = self.querier.customize_Q9(
@@ -1225,14 +1261,61 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q9. Aborting operation...")
             return
-        
+
         # 6. Return a dictionary with names more understandable to the end user
+        proportion_key = "payload(doctpc_{},t{})".format(model_name, topic_id)
         for dict in results.docs:
-            if 'doctpc_' + model_name in dict.keys():
-                dict["thetas"] = dict.pop('doctpc_' + model_name)
+            if proportion_key in dict.keys():
+                dict["topic_relevance"] = dict.pop(proportion_key)*0.1
             dict["num_words_per_doc"] = dict.pop("nwords_per_doc")
-        
-        return results.docs, sc
+
+        # 7. Get the topic's top words
+        words, sc = self.do_Q10(
+            model_col=model_name,
+            start=topic_id,
+            rows=1,
+            only_id=False)
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q10 when using in Q9. Aborting operation...")
+            return
+
+        dict_bow, sc = self.do_Q18(
+            corpus_col=corpus_col,
+            ids=",".join([d['id'] for d in results.docs]),
+            words=",".join(words[0]['tpc_descriptions'].split(", ")),
+            start=start,
+            rows=rows)
+
+        # 7. Merge results
+        def replace_payload_keys(dictionary):
+            new_dict = {}
+            for key, value in dictionary.items():
+                match = re.match(r'payload\(bow,(\w+)\)', key)
+                if match:
+                    new_key = match.group(1)
+                else:
+                    new_key = key
+                new_dict[new_key] = value
+            return new_dict
+
+        merged_tpcs = []
+        for d1 in results.docs:
+            id_value = d1['id']
+         
+            # Find the corresponding dictionary in dict2
+            d2 = next(item for item in dict_bow if item["id"] == id_value)
+         
+            new_dict = {
+                "id": id_value,
+                "topic_relevance": d1.get("topic_relevance", 0),
+                "num_words_per_doc": d1.get("num_words_per_doc", 0),
+                "counts": replace_payload_keys({key: d2[key] for key in d2 if key.startswith("payload(bow,")})
+            }
+
+            merged_tpcs.append(new_dict)
+
+        return merged_tpcs, sc
 
     def do_Q10(self,
                model_col: str,
@@ -1280,7 +1363,7 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q10. Aborting operation...")
             return
-              
+
         return results.docs, sc
 
     def do_Q11(self,
@@ -1388,9 +1471,8 @@ class EWBSolrClient(SolrClient):
                model_name: str,
                lower_limit: str,
                upper_limit: str,
-               year:str,
+               year: str,
                num_records: int) -> Union[dict, int]:
-        
         """Executes query Q13.
 
         Parameters
@@ -1450,13 +1532,14 @@ class EWBSolrClient(SolrClient):
         if len(aux_docs) == 0:
             return "No results found with the given parameters", 404
         else:
-        
+
             df_score = pd.DataFrame(aux_docs)
-            dict_sims = self.pairs_sims_process(df_score, model_name=model_name, num_records=int(num_records))
-            
+            dict_sims = self.pairs_sims_process(
+                df_score, model_name=model_name, num_records=int(num_records))
+
             if dict_sims is None:
                 return "No results found with the given parameters", 404
-            
+
             # 7. Normalize scores
             for el in dict_sims:
                 el['score'] = 100 * el['score']
@@ -1617,7 +1700,7 @@ class EWBSolrClient(SolrClient):
         # 2. Check that corpus_col has the model_name field
         if not self.check_corpus_has_model(corpus_col, model_name):
             return
-        
+
         # 3. Customize start and rows
         start, rows = self.custom_start_and_rows(start, rows, corpus_col)
 
@@ -1625,7 +1708,7 @@ class EWBSolrClient(SolrClient):
         q16 = self.querier.customize_Q16(model_name=model_name,
                                          start=start, rows=rows)
         self.logger.info(
-                f"-- -- Query Q16: {q16}")
+            f"-- -- Query Q16: {q16}")
         params = {k: v for k, v in q16.items() if k != 'q'}
 
         sc, results = self.execute_query(
@@ -1646,18 +1729,18 @@ class EWBSolrClient(SolrClient):
 
         return processed_json_list, sc
 
-    def do_Q17(self, 
+    def do_Q17(self,
                model_name: str,
-               tpc_id : str,
+               tpc_id: str,
                word: str) -> Union[dict, int]:
-        
+
         # 0. Convert model name to lowercase
         model_name = model_name.lower()
 
         # 1. Check that model_col is indeed a model collection
         if not self.check_is_model(model_name):
             return
-        
+
         # 2. Execute query
         q17 = self.querier.customize_Q17(topic_id=tpc_id, word=word)
         params = {k: v for k, v in q17.items() if k != 'q'}
@@ -1669,8 +1752,99 @@ class EWBSolrClient(SolrClient):
             self.logger.error(
                 f"-- -- Error executing query Q17. Aborting operation...")
             return
-        
+
         key = "payload(betas," + word + ")"
         betas = int(results.docs[0][key])
 
         return {'betas': betas}, sc
+
+    def do_Q18(self,
+               corpus_col: str,
+               ids: str,
+               words: str,
+               start: str,
+               rows: str
+               ) -> Union[dict, int]:
+
+        # 0. Convert corpus name to lowercase
+        corpus_col = corpus_col.lower()
+
+        # 1. Check that corpus_col is indeed a corpus collection
+        if not self.check_is_corpus(corpus_col):
+            return
+
+        self.logger.info(words)
+        self.logger.info(ids)
+
+        # 2. Execute query
+        start, rows = self.custom_start_and_rows(start, rows, corpus_col)
+        q18 = self.querier.customize_Q18(
+            ids=ids.split(","),
+            words=words.split(","),
+            start=start,
+            rows=rows)
+        params = {k: v for k, v in q18.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q18['q'], col_name=corpus_col, **params)
+
+        self.logger.info(sc)
+        self.logger.info(results.docs)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q18. Aborting operation...")
+            return
+
+        return results.docs, sc
+
+    def do_Q19(self,
+               model_col: str,
+               start: str,
+               rows: str,
+               user: str) -> Union[dict, int]:
+        """Executes query Q10.
+
+        Parameters
+        ----------
+        model_col: str
+            Name of the model collection whose information is being retrieved
+        start: str
+            Index of the first document to be retrieved
+        rows: str
+            Number of documents to be retrieved
+        user: str
+            User whose relevant topics are being retrieved
+
+        Returns
+        -------
+        json_object: dict
+            JSON object with the results of the query.
+        sc : int
+            The status code of the response.
+        """
+
+        # 0. Convert model name to lowercase
+        model_col = model_col.lower()
+
+        # 1. Check that model_col is indeed a model collection
+        if not self.check_is_model(model_col):
+            return
+
+        # 3. Customize start and rows
+        start, rows = self.custom_start_and_rows(start, rows, model_col)
+
+        # 4. Execute query
+        q19 = self.querier.customize_Q19(
+            start=start, rows=rows, user=user)
+        params = {k: v for k, v in q19.items() if k != 'q'}
+
+        sc, results = self.execute_query(
+            q=q19['q'], col_name=model_col, **params)
+
+        if sc != 200:
+            self.logger.error(
+                f"-- -- Error executing query Q19. Aborting operation...")
+            return
+
+        return results.docs, sc
