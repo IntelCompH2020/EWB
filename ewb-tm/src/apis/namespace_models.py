@@ -89,7 +89,7 @@ class addRelevantTpcForUser(Resource):
                 model_col=model_name,
                 topic_id=tpc_id,
                 user=user,
-                action="add"
+                action="add-distinct"
             )
             return '', 200
         except Exception as e:
@@ -108,7 +108,7 @@ class removeRelevantTpcForUser(Resource):
                 model_col=model_name,
                 topic_id=tpc_id,
                 user=user,
-                action="delete"
+                action="remove"
             )
             return '', 200
         except Exception as e:

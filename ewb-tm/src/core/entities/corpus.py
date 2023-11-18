@@ -51,13 +51,13 @@ class Corpus(object):
 
         self.path_to_logical = path_to_logical
         self.name = path_to_logical.stem.lower()
-        self.name = "hfri"
         self.fields = None
 
         # Read configuration from config file
         cf = configparser.ConfigParser()
         cf.read(config_file)
         #cf.read("/export/data_ml4ds/IntelComp/EWB/code/EWB/ewb_config/config.cf")
+        #cf.read("/Users/lbartolome/Documents/GitHub/EWB/ewb_config/config.cf")
         self._logger.info(f"Sections {cf.sections()}")
         if self.name + "-config" in cf.sections():
             section = self.name + "-config"
@@ -94,6 +94,7 @@ class Corpus(object):
         else:
             DtSet = self._logical_corpus['Dtsets'][0]
             ddf = dd.read_parquet(DtSet['parquet']).fillna("")
+            self._logger.info(ddf.head())
             self.corpus_path = DtSet['parquet']
             idfld = DtSet["idfld"]
 
@@ -124,7 +125,7 @@ class Corpus(object):
         # Convert dates information to the format required by Solr ( ISO_INSTANT, The ISO instant formatter that formats or parses an instant in UTC, such as '2011-12-03T10:15:30Z')
         df, cols = convert_datetime_to_strftime(df)
         df[cols] = df[cols].applymap(parseTimeINSTANT)
-        
+                
         # Create SearcheableField by concatenating all the fields that are marked as SearcheableField in the config file
         df['SearcheableField'] = df[self.sercheable_field].apply(lambda x: ' '.join(x.astype(str)), axis=1)        
         
@@ -136,7 +137,12 @@ class Corpus(object):
 
         return json_lst
 
-    def get_corpora_update(self, id: int) -> List[dict]:
+    def get_corpora_update(
+        self,
+        id: int
+    ) -> List[dict]:
+        """Creates the json to update the 'corpora' collection in Solr with the new logical corpus information.
+        """
 
         fields_dict = [{"id": id,
                         "corpus_name": self.name,
@@ -166,9 +172,7 @@ class Corpus(object):
         action:str
     ):  
         
-        self._logger.info(self._logical_corpus['Dtsets'])
         DtSet = self._logical_corpus['Dtsets'][0]
-        self._logger.info(self._logger)
         ddf = dd.read_parquet(DtSet['parquet']).fillna("")
         idfld = DtSet["idfld"]
 
@@ -190,7 +194,7 @@ class Corpus(object):
                 new_SearcheableFields.remove(self.date_field)
                 new_SearcheableFields.append("date")
             new_SearcheableFields = list(set(new_SearcheableFields + self.sercheable_field))
-        elif action == "delete":
+        elif action == "remove":
             if self.title_field in new_SearcheableFields:
                 new_SearcheableFields.remove(self.title_field)
                 new_SearcheableFields.append("title")
@@ -199,11 +203,7 @@ class Corpus(object):
                 new_SearcheableFields.append("date")
             new_SearcheableFields = [el for el in self.sercheable_field if el not in new_SearcheableFields]
         
-        self._logger.info("######################")
-        self._logger.info(new_SearcheableFields)
-        
         df['SearcheableField'] = df[new_SearcheableFields].apply(lambda x: ' '.join(x.astype(str)), axis=1)
-        self._logger.info(df)
         
         not_keeps_cols = [el for el in df.columns.tolist() if el not in ["id","SearcheableField"]]
         df = df.drop(not_keeps_cols, axis=1)
@@ -216,14 +216,12 @@ class Corpus(object):
         for d in json_lst:
             d["SearcheableField"] = {"set": d["SearcheableField"]}
             new_list.append(d)
-    
-        self._logger.info(new_list)
         
         return new_list, new_SearcheableFields
     
 
 #if __name__ == '__main__':
-#    corpus = Corpus(pathlib.Path("/export/data_ml4ds/IntelComp/EWB/data/source/HFRI_tests.json"))
+#    corpus = Corpus(pathlib.Path("/Users/lbartolome/Documents/GitHub/EWB/data/source/Cordis.json"))
 #    json_lst = corpus.get_docs_raw_info()
 #    new_list = corpus.get_corpus_SearcheableField_update(["Call"], action="add")
 #    fields_dict = corpus.get_corpora_update(1)

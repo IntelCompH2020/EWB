@@ -379,9 +379,19 @@ class EWBSolrClient(SolrClient):
             self,
             SearcheableFields: str,
             corpus_col: str,
-            action: str) -> None:
+            action: str
+        ) -> None:
         """
-
+        Given a list of fields, it adds them to the SearcheableFields field of the corpus collection given by 'corpus_col' if action is 'add', or it deletes them from the SearcheableFields field of the corpus collection given by 'corpus_col' if action is 'delete'.
+        
+        Parameters
+        ----------
+        SearcheableFields : str
+            List of fields to be added to the SearcheableFields field of the corpus collection given by 'corpus_col'.
+        corpus_col : str
+            Name of the corpus collection whose SearcheableFields field is to be updated.
+        action : str
+            Action to be performed. It can be 'add' or 'delete'.
         """
 
         # 1. Get full path
@@ -621,15 +631,11 @@ class EWBSolrClient(SolrClient):
             rows=rows,
             only_id=True)
 
-        self.logger.info(model_json)
-
         new_json = [
             {**d, 'usersIsRelevant': {action: [user]}}
             for d in model_json
             if d['id'] == f"t{str(topic_id)}"
         ]
-
-        self.logger.info(new_json)
 
         self.logger.info(
             f"-- -- Indexing User information in model {model_col} collection")
@@ -1072,7 +1078,7 @@ class EWBSolrClient(SolrClient):
         meta_fields_dict, sc = self.do_Q2(corpus_col)
         meta_fields = ','.join(meta_fields_dict['metadata_fields'])
         
-        self.logger.info("this are the meta fields: " + meta_fields)
+        self.logger.info("-- -- These are the meta fields: " + meta_fields)
 
         # 3. Execute query
         q6 = self.querier.customize_Q6(id=doc_id, meta_fields=meta_fields)
@@ -1773,9 +1779,6 @@ class EWBSolrClient(SolrClient):
         if not self.check_is_corpus(corpus_col):
             return
 
-        self.logger.info(words)
-        self.logger.info(ids)
-
         # 2. Execute query
         start, rows = self.custom_start_and_rows(start, rows, corpus_col)
         q18 = self.querier.customize_Q18(
@@ -1787,9 +1790,6 @@ class EWBSolrClient(SolrClient):
 
         sc, results = self.execute_query(
             q=q18['q'], col_name=corpus_col, **params)
-
-        self.logger.info(sc)
-        self.logger.info(results.docs)
 
         if sc != 200:
             self.logger.error(

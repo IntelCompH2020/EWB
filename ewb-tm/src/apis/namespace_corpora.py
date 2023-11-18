@@ -145,7 +145,7 @@ class deleteSearcheableFields(Resource):
             sc.modify_corpus_SearcheableFields(
                 SearcheableFields=search_fields,
                 corpus_col=corpus_col,
-                action="delete")
+                action="remove")
             return '', 200
         except Exception as e:
             return str(e), 500
