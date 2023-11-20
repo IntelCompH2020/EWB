@@ -41,5 +41,5 @@ SearcheableField=title
 [hfri-config]
 title_field=Title
 date_field=startDate
-EWBdisplayed=ProjectID,title,HostInstitution
+EWBdisplayed=ProjectID,title,HostInstitutions
 SearcheableField=ProjectID,Title
