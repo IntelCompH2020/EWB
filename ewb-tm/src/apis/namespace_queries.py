@@ -180,6 +180,10 @@ q18_parser.add_argument(
     'ids', help='IDs of the documents separated by commas', required=True)
 q18_parser.add_argument(
     'words', help='Words to get the BOW from, separated by commas', required=True)
+q18_parser.add_argument(
+    'start', help='Specifies an offset (by default, 0) into the responses at which Solr should begin displaying content', required=False)
+q18_parser.add_argument(
+    'rows', help='Controls how many rows of responses are displayed at a time (default value: maximum number of docs in the collection)', required=False)
 
 q19_parser = reqparse.RequestParser()
 q19_parser.add_argument(
@@ -499,11 +503,15 @@ class getBOWbyDocsIDs(Resource):
         corpus_name = args['corpus_name']
         ids = args['ids']
         words = args['words']
+        start = args['start']
+        rows = args['rows']
 
         try:
             return sc.do_Q18(corpus_col=corpus_name,
                             ids=ids,
-                            words=words)
+                            words=words,
+                            start=start,
+                            rows=rows,)
         except Exception as e:
             return str(e), 500
         
