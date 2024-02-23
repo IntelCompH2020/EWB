@@ -26,6 +26,12 @@ thetas_thr=3e-3
 cache_dir=/data/classifer/models
 
 # There will be one of this for each corpus avaialable at the EWB
+[cordis_kwds3_ai-config]
+title_field=title
+date_field=startDate
+EWBdisplayed=title,objective,euroSciVocCode,date
+SearcheableField=title
+
 [cordis-config]
 title_field=title
 date_field=startDate

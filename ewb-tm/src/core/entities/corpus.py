@@ -76,6 +76,10 @@ class Corpus(object):
         if self.date_field in self.sercheable_field:
             self.sercheable_field.remove(self.date_field)
             self.sercheable_field.append("date")
+        self._logger.info(f"Title field: {self.title_field}")
+        self._logger.info(f"Date field: {self.date_field}")
+        self._logger.info(f"EWB displayed: {self.ewb_displayed}")
+        self._logger.info(f"Searcheable fields: {self.sercheable_field}")
         
         return
 
@@ -106,7 +110,8 @@ class Corpus(object):
 
         with ProgressBar():
             df = ddf.compute(scheduler='processes')
-
+        self._logger.info(f"this is the df: {df.head()}")
+        self._logger.info(f"this is the df columns: {df.columns}")
         # Get number of words per document based on the lemmas column
         # NOTE: Document whose lemmas are empty will have a length of 0
         df["nwords_per_doc"] = df["lemmas"].apply(lambda x: len(x.split()))
@@ -121,13 +126,19 @@ class Corpus(object):
         df['bow'] = df['bow'].apply(lambda x: None if len(x) == 0 else x)
         df = df.drop(['lemmas_'], axis=1)
         df['bow'] = df['bow'].apply(lambda x: ' '.join([f'{word}|{count}' for word, count in x]).rstrip() if x else None)
+        
+        self._logger.info(f"llega aquí")
 
         # Convert dates information to the format required by Solr ( ISO_INSTANT, The ISO instant formatter that formats or parses an instant in UTC, such as '2011-12-03T10:15:30Z')
         df, cols = convert_datetime_to_strftime(df)
         df[cols] = df[cols].applymap(parseTimeINSTANT)
-                
+        
+        self._logger.info(f"llega aquí 2")
+        
         # Create SearcheableField by concatenating all the fields that are marked as SearcheableField in the config file
         df['SearcheableField'] = df[self.sercheable_field].apply(lambda x: ' '.join(x.astype(str)), axis=1)        
+        
+        self._logger.info(f"llega aquí 3")
         
         # Save corpus fields
         self.fields = df.columns.tolist()

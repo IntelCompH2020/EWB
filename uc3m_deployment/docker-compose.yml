@@ -2,11 +2,14 @@ version: "3.8"
 
 networks:
   ewb-net:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 192.168.128.0/24
+    name: ml4ds_net
+    external: true
+  #ewb-net:
+  #  driver: bridge
+  #  ipam:
+  #    driver: default
+  #    config:
+  #      - subnet: 192.168.128.0/24
 
 services:
   tm:
@@ -56,6 +59,8 @@ services:
     restart: "no"
     entrypoint: |
       /bin/sh -c "chown 8983:8983 /solr"
+    networks:
+      - ewb-net
     volumes:
       - ../../../data/db/data/solr:/solr
 
