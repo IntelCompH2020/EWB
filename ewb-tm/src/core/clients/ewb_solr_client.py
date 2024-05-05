@@ -29,9 +29,11 @@ class EWBSolrClient(SolrClient):
         # Read configuration from config file
         cf = configparser.ConfigParser()
         cf.read(config_file)
+        self.solr_config = "ewb_config"
         self.batch_size = int(cf.get('restapi', 'batch_size'))
         self.corpus_col = cf.get('restapi', 'corpus_col')
         self.no_meta_fields = cf.get('restapi', 'no_meta_fields').split(",")
+        self.path_source = pathlib.Path(cf.get('restapi', 'path_source'))
         self.thetas_max_sum = int(cf.get('restapi', 'thetas_max_sum'))
         self.betas_max_sum = int(cf.get('restapi', 'betas_max_sum'))
 
@@ -46,22 +48,32 @@ class EWBSolrClient(SolrClient):
     # ======================================================
     # CORPUS-RELATED OPERATIONS
     # ======================================================
-    def index_corpus(self,
-                     corpus_logical_path: str) -> None:
-        """Given the string path of corpus file, it creates a Solr collection with such the stem name of the file (i.e., if we had '/data/source.Cordis.json' as corpus_logical_path, 'Cordis' would be the stem), reades the corpus file, extracts the raw information of each document, and sends a POST request to the Solr server to index the documents in batches.
+    def index_corpus(
+        self,
+        corpus_raw: str
+    ) -> None:
+        """
+        This method takes the name of a corpus raw file as input. It creates a Solr collection with the stem name of the file, which is obtained by converting the file name to lowercase (for example, if the input is 'Cordis', the stem would be 'cordis'). However, this process occurs only if the directory structure (self.path_source / corpus_raw / parquet) exists.
+
+        After creating the Solr collection, the method reads the corpus file, extracting the raw information of each document. Subsequently, it sends a POST request to the Solr server to index the documents in batches.
 
         Parameters
         ----------
-        corpus_logical_path : str
-            The path of the logical corpus file to be indexed.
+        corpus_raw : str
+            The string name of the corpus raw file to be indexed.
+
         """
 
         # 1. Get full path and stem of the logical corpus
-        corpus_to_index = pathlib.Path(corpus_logical_path)
+        corpus_to_index = self.path_source / (corpus_raw + ".parquet")
         corpus_logical_name = corpus_to_index.stem.lower()
+        
+        self.logger.info(f"Corpus to index: {corpus_to_index}")
+        self.logger.info(f"Corpus logical name: {corpus_logical_name}")
 
         # 2. Create collection
-        corpus, err = self.create_collection(col_name=corpus_logical_name)
+        corpus, err = self.create_collection(
+            col_name=corpus_logical_name, config=self.solr_config)
         if err == 409:
             self.logger.info(
                 f"-- -- Collection {corpus_logical_name} already exists.")
@@ -71,7 +83,9 @@ class EWBSolrClient(SolrClient):
                 f"-- -- Collection {corpus_logical_name} successfully created.")
 
         # 3. Add corpus collection to self.corpus_col. If Corpora has not been created already, create it
-        corpus, err = self.create_collection(col_name=self.corpus_col)
+        corpus, err = self.create_collection(
+            col_name=self.corpus_col, config=self.solr_config)
+        self.logger.info(f"-- -- Collection {self.corpus_col} successfully created.")
         if err == 409:
             self.logger.info(
                 f"-- -- Collection {self.corpus_col} already exists.")
@@ -97,7 +111,10 @@ class EWBSolrClient(SolrClient):
         # 4. Create Corpus object and extract info from the corpus to index
         corpus = Corpus(corpus_to_index)
         json_docs = corpus.get_docs_raw_info()
+        self.logger.info(f"-- -- Corpus info extracted")
         corpus_col_upt = corpus.get_corpora_update(id=corpus_id)
+        self.logger.info(f"-- -- corpus_col_upt extracted")
+        self.logger.info(f"{corpus_col_upt}")
 
         # 5. Index corpus and its fiels in CORPUS_COL
         self.logger.info(
@@ -443,11 +460,12 @@ class EWBSolrClient(SolrClient):
         """
 
         # 1. Get stem of the model folder
-        model_to_index = pathlib.Path(model_path)
-        model_name = pathlib.Path(model_to_index).stem.lower()
+        model_to_index =  self.path_source / model_path
+        model_name = model_to_index.stem.lower()
 
         # 2. Create collection
-        _, err = self.create_collection(col_name=model_name)
+        _, err = self.create_collection(
+            col_name=model_name, config=self.solr_config)
         if err == 409:
             self.logger.info(
                 f"-- -- Collection {model_name} already exists.")
@@ -1276,20 +1294,27 @@ class EWBSolrClient(SolrClient):
             dict["num_words_per_doc"] = dict.pop("nwords_per_doc")
 
         # 7. Get the topic's top words
-        words, sc = self.do_Q10(
+        start, rows = self.custom_start_and_rows(start, rows, model_name)
+        q10_results, sc = self.do_Q10(
             model_col=model_name,
-            start=topic_id,
-            rows=1,
+            start=start,
+            rows=rows,
             only_id=False)
         if sc != 200:
             self.logger.error(
                 f"-- -- Error executing query Q10 when using in Q9. Aborting operation...")
             return
-
+        
+        for topic in q10_results:
+            this_tpc_id = topic['id'].split('t')[1]
+            if this_tpc_id == topic_id:
+                words = topic['tpc_descriptions']
+                break
+               
         dict_bow, sc = self.do_Q18(
             corpus_col=corpus_col,
             ids=",".join([d['id'] for d in results.docs]),
-            words=",".join(words[0]['tpc_descriptions'].split(", ")),
+            words=",".join(words.split(", ")),
             start=start,
             rows=rows)
 

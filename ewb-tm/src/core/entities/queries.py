@@ -241,11 +241,20 @@ class Queries(object):
             'fl': 'payload(betas,{})',
         }
         
+        
+        #=================================================================
+        # # Q19: getBOWbyDocsIDs  ##################################################################
+        # # Get the bag of words of a list of documents (ids)
+        # ================================================================
         self.Q18 = {
             'q': 'id:{}',
             'fl': 'payload(bow,{})',
         }
 
+        #=================================================================
+        # # Q19: getUserRelevantTopics  ##################################################################
+        # # Get the topics that a user has marked as relevant
+        # ================================================================
         self.Q19 = {
             'q': 'usersIsRelevant:{}',
             'fl': 'id,alphas,top_words_betas,topic_entropy,topic_coherence,ndocs_active,tpc_descriptions,tpc_labels,coords',
